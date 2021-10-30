@@ -53,3 +53,4 @@ RUN cd /tmp \
 
 # Configuring Golang
 ENV PATH "$PATH:/usr/local/go/bin"
+
