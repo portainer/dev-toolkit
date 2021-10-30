@@ -1,3 +1,3 @@
-FROM portainer/dev-toolkit:2021.11
+FROM cr.portainer.io/portainer/dev-toolkit:2021.11
 
-# TODO: extend base dev toolkit to use .zsh as the default shell
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.2/zsh-in-docker.sh)"
