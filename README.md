@@ -14,8 +14,7 @@ The container image is distributed by Portainer via `cr.portainer.io/portainer/d
 Assuming the toolkit is not built/provided by Portainer or you want to tweak it, use the following instructions to build the toolkit locally:
 
 ```
-cd build/linux/dev-toolkit/
-docker build -t portainer-development-toolkit-base -f toolkit.Dockerfile .
+docker build -t portainer-development-toolkit-base .
 ```
 
 Note: If using WSL2, you might need to use the `--network host` build option.

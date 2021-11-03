@@ -1,4 +1,4 @@
-FROM gitpod/openvscode-server:latest
+FROM deviantony/openvscode-server:latest
 
 EXPOSE 3000
 EXPOSE 9443
