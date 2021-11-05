@@ -17,3 +17,7 @@ RUN EXT_PUBLISHER=sdras EXT_PACKAGE=night-owl && \
     mkdir -pv "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}" && \
     curl -sSL "https://${EXT_PUBLISHER}.gallery.vsassets.io/_apis/public/gallery/publisher/${EXT_PUBLISHER}/extension/${EXT_PACKAGE}/latest/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage" | bsdtar xvf - --strip-components=1 -C "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}"
 
+## Material icon theme extension ID: PKief.material-icon-theme	
+RUN EXT_PUBLISHER=PKief EXT_PACKAGE=material-icon-theme && \
+    mkdir -pv "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}" && \
+    curl -sSL "https://${EXT_PUBLISHER}.gallery.vsassets.io/_apis/public/gallery/publisher/${EXT_PUBLISHER}/extension/${EXT_PACKAGE}/latest/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage" | bsdtar xvf - --strip-components=1 -C "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}"

@@ -1,6 +1,8 @@
 # alapenna's toolkit
 
-This extends the default dev toolkit to add zsh support and a custom VSCode UI theme (https://marketplace.visualstudio.com/items?itemName=sdras.night-owl).
+This extends the default dev toolkit to add zsh support and custom VSCode UI theme components:
+* https://marketplace.visualstudio.com/items?itemName=sdras.night-owl
+* https://marketplace.visualstudio.com/items?itemName=PKief.material-icon-theme
 
 I also store my repositories in `/root/workspace` (which is a symlink to `/workspace`).
 
