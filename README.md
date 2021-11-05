@@ -2,6 +2,18 @@ The entire Portainer development stack inside a container (including the IDE!).
 
 Inspired/made after reading https://www.gitpod.io/blog/openvscode-server-launch
 
+## About
+
+This toolkit comes with the following pre-installed:
+
+* Golang
+* Docker CLI
+* NodeJS
+* Yarn
+* VSCode (+extensions: Go, Docker)
+
+See `Dockerfile` for more details.
+
 ## Requirements
 
 All you need to have installed is Docker.
@@ -72,6 +84,10 @@ $ docker run -it --init \
 --name portainer-dev-toolkit \
 my-dev-toolkit
 ```
+
+### User toolkits
+
+If you wish to use somebody's toolkit or share yours, have a look at the `user-toolkits/` folder!
 
 ## Passing the Docker socket
 
