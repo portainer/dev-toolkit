@@ -103,7 +103,7 @@ $ docker run -it --init \
 my-dev-toolkit
 ```
 
-## Legacy deployment (running as a container on the host)
+## Legacy Portainer deployment (running as a container on the host)
 
 You can still run Portainer through a base container with the host but you will need to pass extra parameters when deploying the toolkit container:
 
@@ -123,3 +123,9 @@ This environment variable defines where the Portainer project root folder reside
 # References & useful links
 
 * https://github.com/gitpod-io/openvscode-server
+
+# Automatic builds
+
+The `cr.portainer.io/portainer/dev-toolkit` image is using DockerHub automatic builds to build images based on this git repository tags.
+
+E.g. creating a new `2021.12` tag in this repository would automatically build `cr.portainer.io/portainer/dev-toolkit:2021.12`.
