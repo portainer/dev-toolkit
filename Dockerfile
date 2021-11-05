@@ -24,6 +24,7 @@ RUN apt-get update --fix-missing && apt-get install -qq \
     apt-transport-https \
     ca-certificates \
     gnupg-agent \
+    libarchive-tools \
     software-properties-common
 
 # Install Docker CLI
@@ -54,3 +55,19 @@ RUN cd /tmp \
 # Configuring Golang
 ENV PATH "$PATH:/usr/local/go/bin"
 
+# Install VSCode extensions
+
+## Note: The most convenient way to install these would be during image build time 
+## via the vscode CLI: https://code.visualstudio.com/docs/editor/extension-marketplace#_command-line-extension-management
+## However, it is currently not possible to automate the installation of the extensions this way, 
+## see: https://github.com/gitpod-io/openvscode-server/issues/94
+
+## Golang extension ID: golang.Go
+RUN EXT_PUBLISHER=golang EXT_PACKAGE=Go && \
+    mkdir -pv "/home/workspace/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}" && \
+    curl -sSL "https://${EXT_PUBLISHER}.gallery.vsassets.io/_apis/public/gallery/publisher/${EXT_PUBLISHER}/extension/${EXT_PACKAGE}/latest/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage" | bsdtar xvf - --strip-components=1 -C "/home/workspace/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}"
+
+## Docker extension ID: ms-azuretools.vscode-docker	
+RUN EXT_PUBLISHER=ms-azuretools EXT_PACKAGE=vscode-docker && \
+    mkdir -pv "/home/workspace/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}" && \
+    curl -sSL "https://${EXT_PUBLISHER}.gallery.vsassets.io/_apis/public/gallery/publisher/${EXT_PUBLISHER}/extension/${EXT_PACKAGE}/latest/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage" | bsdtar xvf - --strip-components=1 -C "/home/workspace/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}"
