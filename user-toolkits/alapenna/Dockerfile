@@ -6,8 +6,13 @@ ENV HOME /root
 # Copy the settings/extensions from the base image
 RUN mv /home/workspace/.openvscode-server /root/.openvscode-server
 
+# Create a workspace folder
 RUN mkdir -pv /workspace && ln -s /workspace /root/workspace
 
+# Prepare a ssh folder placeholder to transfer keys
+RUN mkdir /root/.ssh
+
+# Install zsh
 RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.2/zsh-in-docker.sh)"
 
 ENV SHELL /bin/zsh

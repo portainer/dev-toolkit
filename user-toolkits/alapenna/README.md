@@ -12,6 +12,13 @@ This is how I run this environment:
 docker run -it --init \
     -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
     -v /var/run/docker.sock:/var/run/docker.sock \
+    -v ~/workspaces/toolkit-workspace:/workspace \
     --name portainer-dev-toolkit \
     my-dev-toolkit    
+```
+
+Note, I usually copy my SSH credentials in the toolkit as well:
+
+```
+docker cp ~/.ssh/id_rsa portainer-dev-toolkit:/root/.ssh/id_rsa
 ```
