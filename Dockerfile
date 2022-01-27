@@ -11,7 +11,7 @@ USER root
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 # Set default go version
-ARG GO_VERSION=go1.16.9.linux-amd64
+ARG GO_VERSION=go1.16.13.linux-amd64
 
 # Install packages
 RUN apt-get update --fix-missing && apt-get install -qq \

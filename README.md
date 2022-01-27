@@ -29,8 +29,6 @@ Assuming the toolkit is not built/provided by Portainer or you want to tweak it,
 docker build -t portainer-development-toolkit-base .
 ```
 
-Note: If using WSL2, you might need to use the `--network host` build option.
-
 ## How to use it
 
 ### Using the base without customizations
