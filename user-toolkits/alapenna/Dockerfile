@@ -1,4 +1,4 @@
-FROM cr.portainer.io/portainer/dev-toolkit:2021.11
+FROM portainer/dev-toolkit:2022.01
 
 # This image uses /root as the home instead of /home/workspace
 ENV HOME /root

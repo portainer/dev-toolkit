@@ -29,6 +29,8 @@ Assuming the toolkit is not built/provided by Portainer or you want to tweak it,
 docker build -t portainer-development-toolkit-base .
 ```
 
+**NOTE**: the `portainer/dev-toolkit` is automatically built based on tags available in this git repository. E.g creating a new tag `2022.01` will automatically build and publish `portainer/dev-toolkit:2022.01`.
+
 ## How to use it
 
 ### Using the base without customizations
