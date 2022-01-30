@@ -55,6 +55,13 @@ RUN cd /tmp \
 # Configuring Golang
 ENV PATH "$PATH:/usr/local/go/bin"
 
+# Configure git to use SSH
+# This is useful to retrieve private Go packages
+RUN tee -a ~/.gitconfig << END \
+[url "ssh://git@github.com/"] \
+	insteadOf = https://github.com/ \
+END
+
 # Install VSCode extensions
 
 ## Note: The most convenient way to install these would be during image build time 
