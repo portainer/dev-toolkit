@@ -18,7 +18,7 @@ See `Dockerfile` for more details.
 
 All you need to have installed is Docker.
 
-The container image is distributed by Portainer via `cr.portainer.io/portainer/dev-toolkit`, checkout DockerHub for more details on the tags/versions: https://hub.docker.com/repository/docker/portainer/dev-toolkit/tags?page=1&ordering=last_updated 
+The container image is distributed by Portainer via `portainer/dev-toolkit`, checkout DockerHub for more details on the tags/versions: https://hub.docker.com/repository/docker/portainer/dev-toolkit/tags?page=1&ordering=last_updated 
 
 
 ## (optional) Build the base toolkit image locally
@@ -50,7 +50,7 @@ $ docker run -it --init \
 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
 -v ${TOOLKIT_ROOT}:/home/workspace:cached \
 --name portainer-dev-toolkit \
-cr.portainer.io/portainer/dev-toolkit:2021.11
+portainer/dev-toolkit:2021.11
 ```
 
 Now you can access VScode directly at http://localhost:3000 and start coding (almost)!
@@ -67,7 +67,7 @@ All you will need is to build it first:
 docker build -t my-dev-toolkit -f examples/zsh/Dockerfile .
 ```
 
-Then you can use the instructions above to run it, just replace the official `cr.portainer.io/portainer/dev-toolkit:2021.11` with your image:
+Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2021.11` with your image:
 
 ```
 # First, let's create a space to persist our code, dependencies and VS extensions
@@ -113,7 +113,7 @@ $ docker run -it --init -p 3000:3000 \
 -v ${TOOLKIT_ROOT}:/home/workspace:cached \
 -e PORTAINER_PROJECT=${TOOLKIT_ROOT}/portainer \
 --name portainer-dev-toolkit \
-cr.portainer.io/portainer/dev-toolkit:2021.11
+portainer/dev-toolkit:2021.11
 ```
 
 ### Why do I need PORTAINER_PROJECT?
@@ -126,6 +126,6 @@ This environment variable defines where the Portainer project root folder reside
 
 # Automatic builds
 
-The `cr.portainer.io/portainer/dev-toolkit` image is using DockerHub automatic builds to build images based on this git repository tags.
+The `portainer/dev-toolkit` image is using DockerHub automatic builds to build images based on this git repository tags.
 
-E.g. creating a new `2021.12` tag in this repository would automatically build `cr.portainer.io/portainer/dev-toolkit:2021.12`.
+E.g. creating a new `2021.12` tag in this repository would automatically build `portainer/dev-toolkit:2021.12`.
