@@ -31,3 +31,12 @@ RUN EXT_PUBLISHER=PKief EXT_PACKAGE=material-icon-theme && \
 RUN mkdir -p /root/.docker/cli-plugins/ && \
     curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose && \
     chmod +x ~/.docker/cli-plugins/docker-compose
+
+# Configure git to use SSH
+# This is useful to retrieve private Go packages
+# Note: this has to be done as one of the last steps in the image build process as it can
+# mess up with previous steps using Git (oh-my-zsh installation for example)
+RUN printf '\
+[url "ssh://git@github.com/"] \n\
+	insteadOf = https://github.com/ \n\
+' > /root/.gitconfig
