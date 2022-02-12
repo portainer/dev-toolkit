@@ -2,6 +2,23 @@ The entire Portainer development stack inside a container (including the IDE!).
 
 Inspired/made after reading https://www.gitpod.io/blog/openvscode-server-launch
 
+## TLDR
+
+```
+# Run the toolkit
+$ docker run -it --init \
+-p 3000:3000 \
+-p 9443:9443 \
+-p 8000:8000 \
+-v /var/run/docker.sock:/var/run/docker.sock \
+--name portainer-devkit \
+portainer/dev-toolkit:2022.01
+```
+
+Now you can access VScode directly at http://localhost:3000 and start coding (almost)!
+
+Have a look at the rest of the documentation below for more configuration/customization options.
+
 ## About
 
 This toolkit comes with the following pre-installed:
