@@ -1,4 +1,4 @@
-FROM portainer/dev-toolkit:2022.01
+FROM portainer/dev-toolkit:2022.03
 
 # This image uses /root as the home instead of /home/workspace
 ENV HOME /root
@@ -24,6 +24,11 @@ RUN EXT_PUBLISHER=sdras EXT_PACKAGE=night-owl && \
 
 ## Material icon theme extension ID: PKief.material-icon-theme	
 RUN EXT_PUBLISHER=PKief EXT_PACKAGE=material-icon-theme && \
+    mkdir -pv "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}" && \
+    curl -sSL "https://${EXT_PUBLISHER}.gallery.vsassets.io/_apis/public/gallery/publisher/${EXT_PUBLISHER}/extension/${EXT_PACKAGE}/latest/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage" | bsdtar xvf - --strip-components=1 -C "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}"
+
+## Github copilot extension ID: GitHub.copilot
+RUN EXT_PUBLISHER=GitHub EXT_PACKAGE=copilot && \
     mkdir -pv "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}" && \
     curl -sSL "https://${EXT_PUBLISHER}.gallery.vsassets.io/_apis/public/gallery/publisher/${EXT_PUBLISHER}/extension/${EXT_PACKAGE}/latest/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage" | bsdtar xvf - --strip-components=1 -C "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}"
 

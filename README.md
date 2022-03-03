@@ -2,24 +2,23 @@ The entire Portainer development stack inside a container (including the IDE!).
 
 Inspired/made after reading https://www.gitpod.io/blog/openvscode-server-launch
 
-## TLDR
+# TLDR
+
+Run the toolkit:
 
 ```
-# Run the toolkit
-$ docker run -it --init \
--p 3000:3000 \
--p 9443:9443 \
--p 8000:8000 \
--v /var/run/docker.sock:/var/run/docker.sock \
---name portainer-devkit \
-portainer/dev-toolkit:2022.01
+docker run -it --init \
+    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    --name portainer-devkit \
+    portainer/dev-toolkit:2022.03
 ```
 
 Now you can access VScode directly at http://localhost:3000 and start coding (almost)!
 
 Have a look at the rest of the documentation below for more configuration/customization options.
 
-## About
+# About
 
 This toolkit comes with the following pre-installed:
 
@@ -31,7 +30,13 @@ This toolkit comes with the following pre-installed:
 
 See `Dockerfile` for more details.
 
-## Requirements
+# Automatic builds
+
+The `portainer/dev-toolkit` image is using DockerHub automatic builds to build images based on this git repository tags.
+
+E.g. creating a new `2021.12` tag in this repository would automatically build `portainer/dev-toolkit:2021.12`.
+
+# Requirements
 
 All you need to have installed is Docker.
 
@@ -46,28 +51,20 @@ Assuming the toolkit is not built/provided by Portainer or you want to tweak it,
 docker build -t portainer-development-toolkit-base .
 ```
 
-**NOTE**: the `portainer/dev-toolkit` is automatically built based on tags available in this git repository. E.g creating a new tag `2022.01` will automatically build and publish `portainer/dev-toolkit:2022.01`.
+**NOTE**: the `portainer/dev-toolkit` is automatically built based on tags available in this git repository. E.g creating a new tag `2022.03` will automatically build and publish `portainer/dev-toolkit:2022.03`.
 
-## How to use it
+# How to use it
 
-### Using the base without customizations
+## Using the base without customizations
 
-Following the instructions below to start a vanilla Portainer dev toolkit container:
+Follow the instructions below to start a vanilla Portainer dev toolkit container:
 
 ```
-# First, let's create a space to persist our code, dependencies and VS extensions
-$ mkdir -pv /home/alapenna/workspaces/portainer-toolkit
-
-# Export the space as an env var
-$ export TOOLKIT_ROOT=/home/alapenna/workspaces/portainer-toolkit
-
-# Run the toolkit
-$ docker run -it --init \
--p 3000:3000 \
--p 9000:9000 -p 9443:9443 -p 8000:8000 \
--v ${TOOLKIT_ROOT}:/home/workspace:cached \
---name portainer-dev-toolkit \
-portainer/dev-toolkit:2021.11
+docker run -it --init \
+    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    --name portainer-devkit \
+    portainer/dev-toolkit:2022.03
 ```
 
 Now you can access VScode directly at http://localhost:3000 and start coding (almost)!
@@ -81,68 +78,46 @@ See the `examples/` folder for a list of examples on how you can customize your 
 All you will need is to build it first:
 
 ```
-docker build -t my-dev-toolkit -f examples/zsh/Dockerfile .
+docker build -t my-devkit -f examples/zsh/Dockerfile .
 ```
 
-Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2021.11` with your image:
+Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2022.03` with your image:
 
 ```
-# First, let's create a space to persist our code, dependencies and VS extensions
-$ mkdir -pv /home/alapenna/workspaces/portainer-toolkit
-
-# Export the space as an env var
-$ export TOOLKIT_ROOT=/home/alapenna/workspaces/portainer-toolkit
-
-# Run the toolkit
-$ docker run -it --init \
--p 3000:3000 \
--p 9000:9000 -p 9443:9443 -p 8000:8000 \
--v ${TOOLKIT_ROOT}:/home/workspace:cached \
---name portainer-dev-toolkit \
-my-dev-toolkit
+docker run -it --init \
+    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    --name my-devkit \
+    my-devkit
 ```
 
-### User toolkits
+## User toolkits
 
 If you wish to use somebody's toolkit or share yours, have a look at the `user-toolkits/` folder!
 
 ## Passing the Docker socket
 
-Passing the Docker socket to the dev-toolkit container can be useful if you need to manage containers on your host, build images,etc... from the dev-toolkit container:
+The toolkit default instructions bind mount the docker socket from your host into the dev-toolkit container, this can be useful if you need to manage containers on your host, build images,etc...
 
-```
-$ docker run -it --init \
--p 3000:3000 \
--p 9000:9000 -p 9443:9443 -p 8000:8000 \
--v ${TOOLKIT_ROOT}:/home/workspace:cached \
--v /var/run/docker.sock:/var/run/docker.sock
---name portainer-dev-toolkit \
-my-dev-toolkit
-```
+However, it's entirely optional.
 
 ## Legacy Portainer deployment (running as a container on the host)
 
-You can still run Portainer through a base container with the host but you will need to pass extra parameters when deploying the toolkit container:
+You can still run Portainer through a base container (via `yarn start`) with the host but you will need to pass extra parameters when deploying the toolkit container:
 
 ```
-$ docker run -it --init -p 3000:3000 \
--v /var/run/docker.sock:/var/run/docker.sock \
--v ${TOOLKIT_ROOT}:/home/workspace:cached \
--e PORTAINER_PROJECT=${TOOLKIT_ROOT}/portainer \
---name portainer-dev-toolkit \
-portainer/dev-toolkit:2021.11
+docker run -it --init \
+    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -e PORTAINER_PROJECT=/path/to/portainer/project/on/host \
+    --name portainer-devkit \
+    portainer/dev-toolkit:2022.03
 ```
 
 ### Why do I need PORTAINER_PROJECT?
 
-This environment variable defines where the Portainer project root folder resides on your machine and will be used by Docker to bind mount the `/dist` folder when deploying the local development Portainer instance.
+This environment variable defines where the Portainer project root folder resides **on your machine** and will be used by Docker to bind mount the `/dist` folder when deploying the local development Portainer instance.
 
 # References & useful links
 
 * https://github.com/gitpod-io/openvscode-server
-
-# Automatic builds
-
-The `portainer/dev-toolkit` image is using DockerHub automatic builds to build images based on this git repository tags.
-
-E.g. creating a new `2021.12` tag in this repository would automatically build `portainer/dev-toolkit:2021.12`.

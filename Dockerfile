@@ -1,4 +1,4 @@
-FROM deviantony/openvscode-server:latest
+FROM deviantony/openvscode-server:1.64.2
 
 EXPOSE 3000
 EXPOSE 9443
