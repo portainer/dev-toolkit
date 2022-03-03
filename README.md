@@ -34,7 +34,7 @@ See `Dockerfile` for more details.
 
 The `portainer/dev-toolkit` image is using DockerHub automatic builds to build images based on this git repository tags.
 
-E.g. creating a new `2021.12` tag in this repository would automatically build `portainer/dev-toolkit:2021.12`.
+E.g. creating a new `2022.03` tag in this repository would automatically build `portainer/dev-toolkit:2022.03`.
 
 # Requirements
 
