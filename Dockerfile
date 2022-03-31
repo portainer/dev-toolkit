@@ -1,4 +1,4 @@
-FROM deviantony/openvscode-server:1.64.2
+FROM deviantony/openvscode-server:1.66.0
 
 EXPOSE 3000
 EXPOSE 9443
@@ -11,7 +11,7 @@ USER root
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 # Set default go version
-ARG GO_VERSION=go1.17.8.linux-amd64
+ARG GO_VERSION=go1.18.linux-amd64
 
 # Install packages
 RUN apt-get update --fix-missing && apt-get install -qq \
