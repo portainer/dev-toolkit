@@ -25,6 +25,7 @@ RUN apt-get update --fix-missing && apt-get install -qq \
     ca-certificates \
     gnupg-agent \
     libarchive-tools \
+    openssh-client \
     software-properties-common
 
 # Install Docker CLI
