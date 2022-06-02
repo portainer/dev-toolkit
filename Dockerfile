@@ -14,7 +14,7 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
 ARG GO_VERSION=go1.18.3.linux-amd64
 
 # Install packages
-RUN apt-get update --fix-missing && apt-get install -qq \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
     dialog \
     apt-utils \
     curl \
@@ -26,7 +26,10 @@ RUN apt-get update --fix-missing && apt-get install -qq \
     gnupg-agent \
     libarchive-tools \
     openssh-client \
-    software-properties-common
+    iputils-ping \
+    nano \
+    software-properties-common \
+&& rm -rf /var/lib/apt/lists/*
 
 # Install Docker CLI
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
