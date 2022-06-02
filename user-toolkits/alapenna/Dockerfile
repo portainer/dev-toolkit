@@ -1,4 +1,4 @@
-FROM portainer/dev-toolkit:2022.05
+FROM portainer/dev-toolkit:2022.06
 
 # This image uses /root as the home instead of /home/workspace
 ENV HOME /root
@@ -11,6 +11,11 @@ RUN mkdir -pv /workspace && ln -s /workspace /root/workspace
 
 # Prepare a ssh folder placeholder to transfer keys
 RUN mkdir /root/.ssh
+
+# Install httpie: http://httpie.io/
+RUN curl -SsL https://packages.httpie.io/deb/KEY.gpg | apt-key add - \
+    && curl -SsL -o /etc/apt/sources.list.d/httpie.list https://packages.httpie.io/deb/httpie.list \
+    && apt-get update && apt-get install httpie -y
 
 # Install zsh
 RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.2/zsh-in-docker.sh)"

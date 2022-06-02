@@ -7,6 +7,9 @@ This extends the default dev toolkit to add zsh support and custom VSCode UI the
 It also enables the following VSCode extensions:
 * https://marketplace.visualstudio.com/items?itemName=GitHub.copilot
 
+It includes the following tools:
+* httpie (http://httpie.io/)
+
 I store my repositories in `/root/workspace` (which is a symlink to `/workspace`).
 
 # Run it
@@ -18,9 +21,9 @@ docker run -it --init \
     -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v ~/workspaces/toolkit-workspace:/workspace \
-    -v /tmp/devkit:/devtmp \
+    -v /tmp/dev-toolkit:/share-tmp \
     --name portainer-dev-toolkit \
-    my-dev-toolkit    
+    portainer-dev-toolkit  
 ```
 
 # Post deployment
