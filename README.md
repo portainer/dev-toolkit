@@ -30,6 +30,8 @@ This toolkit comes with the following pre-installed:
 
 See `Dockerfile` for more details.
 
+The Docker image is based on the OpenVSCode image provided by Gitpod: https://github.com/gitpod-io/openvscode-server
+
 # Automatic builds
 
 The `portainer/dev-toolkit` image is using DockerHub automatic builds to build images based on this git repository tags.
