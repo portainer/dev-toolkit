@@ -1,4 +1,4 @@
-FROM gitpod/openvscode-server:1.67.2
+FROM gitpod/openvscode-server:1.68.1
 
 EXPOSE 3000
 EXPOSE 9443
