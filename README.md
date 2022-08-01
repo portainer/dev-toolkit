@@ -11,7 +11,7 @@ docker run -it --init \
     -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     --name portainer-devkit \
-    portainer/dev-toolkit:2022.06
+    portainer/dev-toolkit:2022.08
 ```
 
 Now you can access VScode directly at http://localhost:3000 and start coding (almost)!
@@ -36,7 +36,7 @@ The Docker image is based on the OpenVSCode image provided by Gitpod: https://gi
 
 The `portainer/dev-toolkit` image is using DockerHub automatic builds to build images based on this git repository tags.
 
-E.g. creating a new `2022.06` tag in this repository would automatically build `portainer/dev-toolkit:2022.06`.
+E.g. creating a new `2022.08` tag in this repository would automatically build `portainer/dev-toolkit:2022.08`.
 
 # Requirements
 
@@ -53,7 +53,7 @@ Assuming the toolkit is not built/provided by Portainer or you want to tweak it,
 docker build -t portainer-development-toolkit-base .
 ```
 
-**NOTE**: the `portainer/dev-toolkit` is automatically built based on tags available in this git repository. E.g creating a new tag `2022.06` will automatically build and publish `portainer/dev-toolkit:2022.06`.
+**NOTE**: the `portainer/dev-toolkit` is automatically built based on tags available in this git repository. E.g creating a new tag `2022.08` will automatically build and publish `portainer/dev-toolkit:2022.08`.
 
 # How to use it
 
@@ -66,7 +66,7 @@ docker run -it --init \
     -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     --name portainer-devkit \
-    portainer/dev-toolkit:2022.06
+    portainer/dev-toolkit:2022.08
 ```
 
 Now you can access VScode directly at http://localhost:3000 and start coding (almost)!
@@ -83,7 +83,7 @@ All you will need is to build it first:
 docker build -t my-devkit -f examples/zsh/Dockerfile .
 ```
 
-Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2022.06` with your image:
+Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2022.08` with your image:
 
 ```
 docker run -it --init \
@@ -113,7 +113,7 @@ docker run -it --init \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e PORTAINER_PROJECT=/path/to/portainer/project/on/host \
     --name portainer-devkit \
-    portainer/dev-toolkit:2022.06
+    portainer/dev-toolkit:2022.08
 ```
 
 ### Why do I need PORTAINER_PROJECT?
