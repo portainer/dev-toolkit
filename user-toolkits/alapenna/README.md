@@ -6,6 +6,7 @@ This extends the default dev toolkit to add zsh support and custom VSCode UI the
 
 It also enables the following VSCode extensions:
 * https://marketplace.visualstudio.com/items?itemName=GitHub.copilot
+* https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens
 
 It includes the following tools:
 * httpie (http://httpie.io/)
