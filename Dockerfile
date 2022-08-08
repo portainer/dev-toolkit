@@ -1,4 +1,7 @@
-FROM gitpod/openvscode-server:1.69.2
+FROM gitpod/openvscode-server:1.70.0
+
+ARG TARGETOS
+ARG TARGETARCH
 
 EXPOSE 3000
 EXPOSE 9443
@@ -11,7 +14,7 @@ USER root
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 # Set default go version
-ARG GO_VERSION=go1.18.4.linux-amd64
+ARG GO_VERSION=go1.19.${TARGETOS}-${TARGETARCH}
 
 # Install packages
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
@@ -34,7 +37,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
 # Install Docker CLI
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
     && add-apt-repository \
-   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   "deb [arch=${TARGETARCH}] https://download.docker.com/linux/ubuntu \
    $(lsb_release -cs) \
    stable" \
    && apt-get update \
