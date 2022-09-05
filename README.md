@@ -90,7 +90,7 @@ See the `examples/` and `user-toolkits` folders for a list of examples on how yo
 All you will need is to build it first:
 
 ```
-docker build -t my-devkit -f examples/zsh/Dockerfile .
+docker buildx build -t my-devkit -f examples/zsh/Dockerfile .
 ```
 
 Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2022.09` with your image:
