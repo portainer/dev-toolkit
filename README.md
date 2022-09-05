@@ -42,21 +42,14 @@ E.g. creating a new `2022.09` tag in this repository would automatically build `
 
 # Manual build
 
-Use the following commands in order to build the toolkit base image for **Linux AMD64** and **Linux ARM64**.
+> **Warning**  
+> Currently, the multi-arch image for Linux ARM64 and Linux AMD64 **must be built on a Linux AMD64** host.
+> See https://github.com/docker/buildx/issues/495#issuecomment-761562905 for more details about the issue.
 
-First, reset the builder:
-
-````
-# see https://github.com/docker/buildx/issues/495#issuecomment-761562905 for more details
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-docker buildx create --name multiarch --driver docker-container --use
-docker buildx inspect --bootstrap
-````
-
-Then build and push:
+Use the following command to build and push the base image (make sure you are authenticated to DockerHub first):
 
 ````
-docker buildx build --push --platform=linux/arm64,linux/amd64 -t portainer/dev-toolkit:2022.09 -f Dockerfile .
+make base
 ````
 
 # Requirements
