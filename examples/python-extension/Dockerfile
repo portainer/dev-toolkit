@@ -1,4 +1,4 @@
-FROM cr.portainer.io/portainer/dev-toolkit:2021.11
+FROM portainer/dev-toolkit:2022.09
 
 # First, you'll need to retrieve the unique identifier associated to the extension
 # It can be found on VSCode extension marketplace: https://marketplace.visualstudio.com/items?itemName=ms-python.python
