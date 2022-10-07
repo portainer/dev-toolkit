@@ -15,4 +15,4 @@ base: setup
 	docker buildx build --push --platform=linux/arm64,linux/amd64 -t portainer/dev-toolkit:$(VERSION) -f Dockerfile .
 
 alapenna:
-	docker buildx build -t portainer-dev-toolkit -f user-toolkits/alapenna/Dockerfile .
+	docker buildx build --no-cache --load -t portainer-dev-toolkit -f user-toolkits/alapenna/Dockerfile .
