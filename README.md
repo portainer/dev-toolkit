@@ -22,7 +22,7 @@ Have a look at the rest of the documentation below for more configuration/custom
 
 # About
 
-This toolkit comes with the following pre-installed:
+This toolkit comes with the following tools pre-installed:
 
 * Golang
 * Docker CLI
