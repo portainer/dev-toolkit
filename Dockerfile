@@ -1,4 +1,4 @@
-FROM gitpod/openvscode-server:1.71.2
+FROM gitpod/openvscode-server:1.73.0
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -14,7 +14,7 @@ USER root
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 # Set default go version
-ARG GO_VERSION=go1.19.2.${TARGETOS}-${TARGETARCH}
+ARG GO_VERSION=go1.19.3.${TARGETOS}-${TARGETARCH}
 
 # Install packages
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
@@ -45,7 +45,7 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
 
 
 # Install NodeJS
-RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash - \
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs
 
 # Install Yarn
