@@ -27,6 +27,24 @@ docker run -it --init \
     portainer-dev-toolkit  
 ```
 
+## With Finch!
+
+https://github.com/runfinch/finch
+
+```
+finch build -t portainer-dev-toolkit -f user-toolkits/alapenna/Dockerfile .
+
+finch run -d --init \
+    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
+    -v ~/workspaces/toolkit-workspace:/workspace \
+    -v ~/tmp/dev-toolkit:/share-tmp \
+    --name portainer-dev-toolkit \
+    portainer-dev-toolkit 
+
+finch container cp ~/.ssh/id_rsa portainer-dev-toolkit:/root/.ssh/id_rsa
+```
+
+
 # Post deployment
 
 A few steps to configure the environment after deployment.
