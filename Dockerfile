@@ -1,4 +1,4 @@
-FROM gitpod/openvscode-server:1.73.0
+FROM gitpod/openvscode-server:1.73.1
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -42,7 +42,6 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
    stable" \
    && apt-get update \
    && apt-get install -y docker-ce-cli
-
 
 # Install NodeJS
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
