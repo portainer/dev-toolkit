@@ -13,7 +13,7 @@ docker run -it --init \
     -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     --name portainer-devkit \
-    portainer/dev-toolkit:2022.12
+    portainer/dev-toolkit:2023.01
 ```
 
 Now you can access VScode directly at http://localhost:3000 and start coding (almost)!
@@ -38,7 +38,7 @@ The Docker image is based on the OpenVSCode image provided by Gitpod: https://gi
 
 The `portainer/dev-toolkit` **Linux AMD64** image is using DockerHub automatic builds to build images based on this git repository tags.
 
-E.g. creating a new `2022.12` tag in this repository would automatically build `portainer/dev-toolkit:2022.12`.
+E.g. creating a new `2023.01` tag in this repository would automatically build `portainer/dev-toolkit:2023.01`.
 
 # Manual build
 
@@ -69,7 +69,7 @@ docker run -it --init \
     -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     --name portainer-devkit \
-    portainer/dev-toolkit:2022.12
+    portainer/dev-toolkit:2023.01
 ```
 
 Now you can access VScode directly at http://localhost:3000 and start coding (almost)!
@@ -86,7 +86,7 @@ All you will need is to build it first:
 docker buildx build -t my-devkit -f examples/zsh/Dockerfile .
 ```
 
-Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2022.12` with your image:
+Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2023.01` with your image:
 
 ```
 docker run -it --init \
