@@ -18,7 +18,7 @@ RUN curl -SsL https://packages.httpie.io/deb/KEY.gpg | apt-key add - \
     && apt-get update && apt-get install httpie -y
 
 # Install zsh
-RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.2/zsh-in-docker.sh)"
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.5/zsh-in-docker.sh)"
 
 ENV SHELL /bin/zsh
 
