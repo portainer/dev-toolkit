@@ -1,4 +1,4 @@
-FROM gitpod/openvscode-server:1.75.0
+FROM gitpod/openvscode-server:1.75.1
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -14,7 +14,7 @@ USER root
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 # Set default go version
-ARG GO_VERSION=go1.20.${TARGETOS}-${TARGETARCH}
+ARG GO_VERSION=go1.20.1.${TARGETOS}-${TARGETARCH}
 
 # Install packages
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
