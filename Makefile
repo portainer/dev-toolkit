@@ -1,5 +1,5 @@
-# Note: these can be overriden on the command line e.g. `make VERSION=2023.02`
-VERSION=2023.02
+# Note: these can be overriden on the command line e.g. `make VERSION=2023.03`
+VERSION=2023.03
 
 .PHONY: setup clean base alapenna
 
