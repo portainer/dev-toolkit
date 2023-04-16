@@ -13,6 +13,14 @@ It includes the following tools:
 
 I store my repositories in `/root/workspace` (which is a symlink to `/workspace`).
 
+# Build it
+
+Simple as running the following command on your local machine:
+
+```
+make alapenna
+```
+
 # Run it
 
 This is how I run this environment:
