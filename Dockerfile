@@ -59,7 +59,7 @@ RUN cd /tmp \
 	&& mv go /usr/local
 
 # Configuring Golang
-ENV PATH "$PATH:/usr/local/go/bin"
+ENV PATH "$PATH:/usr/local/go/bin:/root/go/bin"
 
 # Install VSCode extensions
 

@@ -47,6 +47,9 @@ RUN mkdir -p /root/.docker/cli-plugins/ && \
     curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose && \
     chmod +x ~/.docker/cli-plugins/docker-compose
 
+## Install air
+RUN go install github.com/cosmtrek/air@latest
+
 # Configure git to use SSH
 # This is useful to retrieve private Go packages
 # Note: this has to be done as one of the last steps in the image build process as it can
