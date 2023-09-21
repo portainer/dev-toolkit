@@ -27,31 +27,14 @@ This is how I run this environment:
 
 ```
 docker run -it --init \
-    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
+    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 -p 6443:6443 -p 443:443 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v ~/workspaces/toolkit-workspace:/workspace \
     -v ~/tmp/dev-toolkit:/share-tmp \
+    -v /opt/dev-toolkit:/opt/dev-toolkit \
     --name portainer-dev-toolkit \
-    portainer-dev-toolkit  
+    portainer-dev-toolkit
 ```
-
-## With Finch!
-
-https://github.com/runfinch/finch
-
-```
-finch build -t portainer-dev-toolkit -f user-toolkits/alapenna/Dockerfile .
-
-finch run -d --init \
-    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
-    -v ~/workspaces/toolkit-workspace:/workspace \
-    -v ~/tmp/dev-toolkit:/share-tmp \
-    --name portainer-dev-toolkit \
-    portainer-dev-toolkit 
-
-finch container cp ~/.ssh/id_rsa portainer-dev-toolkit:/root/.ssh/id_rsa
-```
-
 
 # Post deployment
 
