@@ -1,4 +1,4 @@
-FROM portainer/dev-toolkit:2023.10
+FROM portainer/dev-toolkit:2024.01
 
 # This image uses /root as the home instead of /home/workspace
 ENV HOME /root
@@ -16,6 +16,9 @@ RUN mkdir /root/.ssh
 RUN curl -SsL https://packages.httpie.io/deb/KEY.gpg | apt-key add - \
     && curl -SsL -o /etc/apt/sources.list.d/httpie.list https://packages.httpie.io/deb/httpie.list \
     && apt-get update && apt-get install httpie -y
+
+# Install pip
+RUN apt-get install python3-pip -y
 
 # Install zsh
 RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.5/zsh-in-docker.sh)"
@@ -37,10 +40,15 @@ RUN EXT_PUBLISHER=GitHub EXT_PACKAGE=copilot && \
     mkdir -pv "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}" && \
     curl -sSL "https://${EXT_PUBLISHER}.gallery.vsassets.io/_apis/public/gallery/publisher/${EXT_PUBLISHER}/extension/${EXT_PACKAGE}/latest/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage" | bsdtar xvf - --strip-components=1 -C "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}"
 
-## Github copilot chat extension ID: GitHub.copilot
-RUN EXT_PUBLISHER=GitHub EXT_PACKAGE=copilot-chat && \
-    mkdir -pv "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}" && \
-    curl -sSL "https://${EXT_PUBLISHER}.gallery.vsassets.io/_apis/public/gallery/publisher/${EXT_PUBLISHER}/extension/${EXT_PACKAGE}/latest/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage" | bsdtar xvf - --strip-components=1 -C "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}"
+## Python extension: ms-python.python
+RUN EXT_PUBLISHER=ms-python EXT_PACKAGE=python && \
+    mkdir -pv "/home/workspace/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}" && \
+    curl -sSL "https://${EXT_PUBLISHER}.gallery.vsassets.io/_apis/public/gallery/publisher/${EXT_PUBLISHER}/extension/${EXT_PACKAGE}/latest/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage" | bsdtar xvf - --strip-components=1 -C "/home/workspace/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}"
+
+## Github copilot chat extension ID: GitHub.copilot-chat
+# RUN EXT_PUBLISHER=GitHub EXT_PACKAGE=copilot-chat && \
+#     mkdir -pv "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}" && \
+#     curl -sSL "https://${EXT_PUBLISHER}.gallery.vsassets.io/_apis/public/gallery/publisher/${EXT_PUBLISHER}/extension/${EXT_PACKAGE}/latest/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage" | bsdtar xvf - --strip-components=1 -C "${HOME}/.openvscode-server/extensions/${EXT_PUBLISHER}.${EXT_PACKAGE}"
 
 ## Gitlens extension extension ID: eamodio.gitlens
 #RUN EXT_PUBLISHER=eamodio EXT_PACKAGE=gitlens && \
@@ -63,3 +71,6 @@ RUN printf '\
 [url "ssh://git@github.com/"] \n\
 	insteadOf = https://github.com/ \n\
 ' > /root/.gitconfig
+
+# Update .zshrc
+RUN echo 'export PATH="$PATH:/root/.local/bin"' >> /root/.zshrc
