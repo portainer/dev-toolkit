@@ -23,6 +23,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
     curl \
     build-essential \
     git \
+    jq \
     wget \
     apt-transport-https \
     ca-certificates \
