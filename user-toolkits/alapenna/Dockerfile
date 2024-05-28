@@ -63,6 +63,9 @@ RUN mkdir -p /root/.docker/cli-plugins/ && \
 ## Install air
 RUN go install github.com/cosmtrek/air@latest
 
+## Install python tools
+RUN pip install --user --upgrade pipenv twine requests-toolbelt
+
 # Configure git to use SSH
 # This is useful to retrieve private Go packages
 # Note: this has to be done as one of the last steps in the image build process as it can
