@@ -1,4 +1,4 @@
-FROM portainer/dev-toolkit:2024.01
+FROM portainer/dev-toolkit:2024.05
 
 ENV HOME /root
 
