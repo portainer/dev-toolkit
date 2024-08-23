@@ -63,7 +63,7 @@ RUN cd /tmp \
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /root/go/bin v1.60.3
 
 # Configuring Golang
-ENV PATH "$PATH:/usr/local/go/bin:/root/go/bin"
+ENV PATH="$PATH:/usr/local/go/bin:/root/go/bin"
 
 # Install VSCode extensions
 

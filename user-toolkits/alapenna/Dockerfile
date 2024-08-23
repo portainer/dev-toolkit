@@ -1,7 +1,7 @@
 FROM portainer/dev-toolkit:2024.08
 
 # This image uses /root as the home instead of /home/workspace
-ENV HOME /root
+ENV HOME=/root
 
 # Copy the settings/extensions from the base image
 RUN mv /home/workspace/.openvscode-server /root/.openvscode-server

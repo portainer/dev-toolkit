@@ -1,9 +1,9 @@
 FROM portainer/dev-toolkit:2024.08
 
-ENV HOME /root
+ENV HOME=/root
 
 RUN mkdir -pv /workspace && ln -s /workspace /root/workspace
 
 RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.2/zsh-in-docker.sh)"
 
-ENV SHELL /bin/zsh
+ENV SHELL=/bin/zsh
