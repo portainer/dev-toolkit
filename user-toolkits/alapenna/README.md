@@ -27,18 +27,21 @@ This is how I run this environment:
 
 ```
 docker run -it --init \
+    # Expose a few different ports for development
     -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 -p 6443:6443 -p 443:443 \
+    # Access to the local socket to control Docker from within the VSCode terminal
     -v /var/run/docker.sock:/var/run/docker.sock \
+    # The projects are cloned and stored on the host
     -v ~/workspaces/toolkit-workspace:/workspace \
+    # Convenient mount to share files between the host and this container
     -v ~/tmp/dev-toolkit:/share-tmp \
-    -v /opt/dev-toolkit:/opt/dev-toolkit \
     --name portainer-dev-toolkit \
     portainer-dev-toolkit
 ```
 
 # Post deployment
 
-A few steps to configure the environment after deployment.
+A few steps to configure the environment after a new deployment or after an update.
 
 ## Copying SSH keys
 
@@ -46,6 +49,7 @@ I usually copy my SSH credentials in the toolkit as well:
 
 ```
 docker cp ~/.ssh/id_rsa portainer-dev-toolkit:/root/.ssh/id_rsa
+docker cp ~/.ssh/id_rsa.pub portainer-dev-toolkit:/root/.ssh/id_rsa.pub
 ```
 
 ## Configuring git
@@ -58,6 +62,8 @@ git config --global user.name <name>
 ```
 
 ## Power10k zsh theme font
+
+*Note: this is usually only required on first deployment.*
 
 Requires the installation of the fonts associated to the power10k zsh theme: https://github.com/romkatv/powerlevel10k#fonts
 
