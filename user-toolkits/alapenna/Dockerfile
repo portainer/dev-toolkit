@@ -66,9 +66,6 @@ RUN go install github.com/cosmtrek/air@latest
 ## Install python tools
 RUN pip install --user --upgrade pipenv twine requests-toolbelt
 
-## Install golangci-lint
-RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.60.3
-
 # Configure git to use SSH
 # This is useful to retrieve private Go packages
 # Note: this has to be done as one of the last steps in the image build process as it can

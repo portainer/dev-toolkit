@@ -60,7 +60,7 @@ RUN cd /tmp \
 	&& mv go /usr/local
 
 # Install golangci-lint
-RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /root/go/bin v1.56.2
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /root/go/bin v1.60.3
 
 # Configuring Golang
 ENV PATH "$PATH:/usr/local/go/bin:/root/go/bin"
