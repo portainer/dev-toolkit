@@ -36,11 +36,13 @@ The Docker image is based on the OpenVSCode image provided by Gitpod: https://gi
 
 # Automatic builds
 
-The `portainer/dev-toolkit` **Linux AMD64** image is using DockerHub automatic builds to build images based on this git repository tags.
+The `portainer/dev-toolkit` image is using DockerHub automatic builds to build multi-arch (amd64, arm64) images based on this git repository tags.
 
-E.g. creating a new `2024.08` tag in this repository would automatically build `portainer/dev-toolkit:2024.08`.
+E.g. creating a new `2024.08` tag in this repository will automatically build `portainer/dev-toolkit:2024.08`.
 
 # Manual build
+
+Follow the instructions below if you wish to build the image manually.
 
 > **Warning**  
 > Currently, the multi-arch image for Linux ARM64 and Linux AMD64 **must be built on a Linux AMD64** host.
@@ -48,9 +50,9 @@ E.g. creating a new `2024.08` tag in this repository would automatically build `
 
 Use the following command to build and push the base image (make sure you are authenticated to DockerHub first):
 
-````
+```
 make base
-````
+```
 
 # Requirements
 
@@ -66,7 +68,7 @@ Follow the instructions below to start a vanilla Portainer dev toolkit container
 
 ```
 docker run -it --init \
-    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
+    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 -p 8999:8999 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     --name portainer-devkit \
     portainer/dev-toolkit:2024.08
@@ -90,7 +92,7 @@ Then you can use the instructions above to run it, just replace the official `po
 
 ```
 docker run -it --init \
-    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
+    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 -p 8999:8999 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     --name my-devkit \
     my-devkit
@@ -112,22 +114,21 @@ Clone the portainer project directly in the container and execute the following 
 
 Install the dependencies and build the client+server first:
 
-````
-yarn
-yarn build
-````
-
-Run the client in dev mode if you wish to do changes on the client:
-
-````
-yarn start:client
-````
+```
+make build-all
+```
 
 Run the backend as a process directly:
 
-````
-./dist/portainer --data /tmp/portainer
-````
+```
+./dist/portainer --data /tmp/portainer --log-level=DEBUG
+```
+
+Run the client in dev mode if you wish to do changes on the client:
+
+```
+make dev-client
+```
 
 # References & useful links
 

@@ -6,10 +6,12 @@ This extends the default dev toolkit to add zsh support and custom VSCode UI the
 
 It also enables the following VSCode extensions:
 * https://marketplace.visualstudio.com/items?itemName=GitHub.copilot
-* https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens
+* https://marketplace.visualstudio.com/items?itemName=ms-python.python
 
 It includes the following tools:
-* httpie (http://httpie.io/)
+* httpie for easy HTTP requesting (http://httpie.io/)
+* air for golang app live reload (https://github.com/air-verse/air)
+* a few Python tools (pip, pipenv, twine) for Python experiments
 
 I store my repositories in `/root/workspace` (which is a symlink to `/workspace`).
 
@@ -26,14 +28,15 @@ make alapenna
 This is how I run this environment:
 
 ```
+# This container:
+# * Exposes a few different ports for development
+# * Has access to the local socket to control Docker from within the VSCode terminal
+# * Uses a mount to store the projects on the host
+# * Uses a convenient mount to share files between the host and this container
 docker run -it --init \
-    # Expose a few different ports for development
-    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 -p 6443:6443 -p 443:443 \
-    # Access to the local socket to control Docker from within the VSCode terminal
+    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 -p 8999:8999 -p 6443:6443 -p 443:443 \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    # The projects are cloned and stored on the host
     -v ~/workspaces/toolkit-workspace:/workspace \
-    # Convenient mount to share files between the host and this container
     -v ~/tmp/dev-toolkit:/share-tmp \
     --name portainer-dev-toolkit \
     portainer-dev-toolkit
@@ -57,6 +60,8 @@ docker cp ~/.ssh/id_rsa.pub portainer-dev-toolkit:/root/.ssh/id_rsa.pub
 Inside the terminal of VSCode:
 
 ```
+# Run a git pull first to validate github.com key fingerprint
+git pull
 git config --global user.email <email>
 git config --global user.name <name>
 ```
