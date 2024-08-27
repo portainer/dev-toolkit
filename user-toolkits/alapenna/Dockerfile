@@ -12,6 +12,9 @@ RUN mkdir -pv /workspace && ln -s /workspace /root/workspace
 # Prepare a ssh folder placeholder to transfer keys
 RUN mkdir /root/.ssh
 
+# Prepare a git folder for storing git configuration
+RUN mkdir /root/.config/git
+
 # Install httpie: http://httpie.io/
 RUN curl -SsL https://packages.httpie.io/deb/KEY.gpg | apt-key add - \
     && curl -SsL -o /etc/apt/sources.list.d/httpie.list https://packages.httpie.io/deb/httpie.list \

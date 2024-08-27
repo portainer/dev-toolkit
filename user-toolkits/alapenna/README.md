@@ -62,8 +62,16 @@ Inside the terminal of VSCode:
 ```
 # Run a git pull first to validate github.com key fingerprint
 git pull
+
+# Configure the user
 git config --global user.email <email>
 git config --global user.name <name>
+
+# Configure commit signing
+git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/id_rsa.pub
+git config --global gpg.ssh.allowedSignersFile '~/.config/git/allowed-signers'
+echo "<email> $(cat ~/.ssh/id_rsa.pub)" > ~/.config/git/allowed-signers
 ```
 
 ## Power10k zsh theme font
