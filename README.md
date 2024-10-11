@@ -1,44 +1,35 @@
-The entire Portainer development stack inside a container (including the IDE!).
+The Portainer development toolkit is a containerized development environment for Portainer!
 
 Works on Linux and MacOS!
 
-Inspired/made after reading https://www.gitpod.io/blog/openvscode-server-launch
+For previous versions of the toolkit that also included the VSCode IDE, see the branch [2024.08](https://github.com/portainer/dev-toolkit/tree/2024.08).
 
 # TLDR
 
-Run the toolkit:
+Install the [devcontainer extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) in your IDE of choice. For more information on supported IDEs, see the [devcontainer documentation](https://containers.dev/supporting#editors).
 
-```
-docker run -it --init \
-    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    --name portainer-devkit \
-    portainer/dev-toolkit:2024.08
-```
+Configure your workspace to use the `devcontainer.json` file in this repository.
 
-Now you can access VScode directly at http://localhost:3000 and start coding (almost)!
+Open your project in your IDE using the <u>Open Folder in Container</u> option and start coding!
 
 Have a look at the rest of the documentation below for more configuration/customization options.
 
 # About
 
-This toolkit comes with the following tools pre-installed:
+This toolkit is based on the Ubuntu 24.04 LTS image and comes with the following tools pre-installed:
 
 * Golang
 * Docker CLI
 * NodeJS
 * Yarn
-* VSCode (+extensions: Go, Docker)
 
 See `Dockerfile` for more details.
-
-The Docker image is based on the OpenVSCode image provided by Gitpod: https://github.com/gitpod-io/openvscode-server
 
 # Automatic builds
 
 The `portainer/dev-toolkit` image is using DockerHub automatic builds to build multi-arch (amd64, arm64) images based on this git repository tags.
 
-E.g. creating a new `2024.08` tag in this repository will automatically build `portainer/dev-toolkit:2024.08`.
+E.g. creating and pushing a new `2024.10` tag in this repository will automatically build `portainer/dev-toolkit:2024.10`.
 
 # Manual build
 
@@ -62,20 +53,6 @@ The container image is distributed by Portainer via `portainer/dev-toolkit`, che
 
 # How to use it
 
-## Using the base without customizations
-
-Follow the instructions below to start a vanilla Portainer dev toolkit container:
-
-```
-docker run -it --init \
-    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 -p 8999:8999 \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    --name portainer-devkit \
-    portainer/dev-toolkit:2024.08
-```
-
-Now you can access VScode directly at http://localhost:3000 and start coding (almost)!
-
 ## Customize it!
 
 Developers should be able to customize the environment to their liking (I prefer work with zsh as a shell for example), this dev toolkit was designed to be extended.
@@ -88,29 +65,23 @@ All you will need is to build it first:
 docker buildx build -t my-devkit -f examples/zsh/Dockerfile .
 ```
 
-Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2024.08` with your image:
+Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2024.10` with your image in the `devcontainer.json` file:
 
-```
-docker run -it --init \
-    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 -p 8999:8999 \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    --name my-devkit \
-    my-devkit
+```json
+{
+	"name": "portainer-dev-toolkit",
+	"image": "my-devkit",
+	...
+}
 ```
 
 ## User toolkits
 
 If you wish to use somebody's toolkit or share yours, have a look at the `user-toolkits/` folder!
 
-## Passing the Docker socket
-
-The toolkit default instructions bind mount the docker socket from your host into the dev-toolkit container, this can be useful if you need to manage containers on your host, build images,etc...
-
-However, it's entirely optional.
-
 # Building Portainer inside the toolkit
 
-Clone the portainer project directly in the container and execute the following commands to start a development build.
+After opening your project in the dev container, execute the following commands to start a development build.
 
 Install the dependencies and build the client+server first:
 
@@ -132,4 +103,8 @@ make dev-client
 
 # References & useful links
 
-* https://github.com/gitpod-io/openvscode-server
+* https://code.visualstudio.com/docs/devcontainers/devcontainer-cli#_development-containers
+* https://containers.dev/
+* https://code.visualstudio.com/docs/devcontainers/create-dev-container#_create-a-devcontainerjson-file
+* https://code.visualstudio.com/docs/devcontainers/devcontainer-cli#_prebuilding
+* https://containers.dev/implementors/json_reference/

@@ -1,0 +1,19 @@
+{
+	"name": "portainer-dev-toolkit",
+	"image": "portainer/dev-toolkit:2024.10",
+	"forwardPorts": [8000, 8999, 9000, 9443],
+	"mounts": [
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.makefile-tools",
+				"ms-azuretools.vscode-docker",
+				"golang.Go",
+				"ms-python.python"
+			]
+		}
+	},
+	"remoteUser": "root"
+}

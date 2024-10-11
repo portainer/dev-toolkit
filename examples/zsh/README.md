@@ -9,12 +9,4 @@ See: https://github.com/romkatv/powerlevel10k#meslo-nerd-font-patched-for-powerl
 
 You'll also need to update VSCode settings (terminal.integrated.fontFamily) to match "MesloLGS NF" (more details in the link above).
 
-This is how I used this environment:
-
-```
-docker run -it --init \
-    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    --name portainer-dev-toolkit \
-    dev-toolkit
-```
+You can use the `devcontainer.json` file in the root of this repository as a reference to configure your project to use this image.
