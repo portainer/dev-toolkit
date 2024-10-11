@@ -1,19 +1,18 @@
 # alapenna's toolkit
 
-This extends the default dev toolkit to add zsh support and custom VSCode UI theme components:
-* https://marketplace.visualstudio.com/items?itemName=sdras.night-owl
-* https://marketplace.visualstudio.com/items?itemName=PKief.material-icon-theme
-
-It also enables the following VSCode extensions:
-* https://marketplace.visualstudio.com/items?itemName=GitHub.copilot
-* https://marketplace.visualstudio.com/items?itemName=ms-python.python
+This extends the default dev toolkit to add zsh support and a few more tools.
 
 It includes the following tools:
 * httpie for easy HTTP requesting (http://httpie.io/)
 * air for golang app live reload (https://github.com/air-verse/air)
-* a few Python tools (pip, pipenv, twine) for Python experiments
 
 I store my repositories in `/root/workspace` (which is a symlink to `/workspace`).
+It includes a few folders shared with the host:
+* `/root/.ssh`: for SSH keys
+* `/workspace`: for all my git repositories that I have on my host
+* `/share-tmp`: for sharing temporary files between the host and the container
+
+For more details, see the `devcontainer.json` and the `Dockerfile` files in this directory.
 
 # Build it
 
@@ -23,63 +22,20 @@ Simple as running the following command on your local machine:
 make alapenna
 ```
 
-# Run it
+# Use it
 
-This is how I run this environment:
-
-```
-# This container:
-# * Exposes a few different ports for development
-# * Has access to the local socket to control Docker from within the VSCode terminal
-# * Uses a mount to store the projects on the host
-# * Uses a convenient mount to share files between the host and this container
-docker run -it --init \
-    -p 3000:3000 -p 9000:9000 -p 9443:9443 -p 8000:8000 -p 8999:8999 -p 6443:6443 -p 443:443 \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    -v ~/workspaces/toolkit-workspace:/workspace \
-    -v ~/tmp/dev-toolkit:/share-tmp \
-    --name portainer-dev-toolkit \
-    portainer-dev-toolkit
-```
+Configure your project to use the `devcontainer.json` file in this directory.
 
 # Post deployment
 
 A few steps to configure the environment after a new deployment or after an update.
 
-## Copying SSH keys
-
-I usually copy my SSH credentials in the toolkit as well:
-
-```
-docker cp ~/.ssh/id_rsa portainer-dev-toolkit:/root/.ssh/id_rsa
-docker cp ~/.ssh/id_rsa.pub portainer-dev-toolkit:/root/.ssh/id_rsa.pub
-```
-
 ## Configuring git
 
-Inside the terminal of VSCode:
+Inside the terminal of your IDE:
 
 ```
-# Run a git pull first to validate github.com key fingerprint
-git pull
-
-# Configure the user
+# Configure the git user
 git config --global user.email <email>
 git config --global user.name <name>
-
-# Configure commit signing
-git config --global gpg.format ssh
-git config --global user.signingkey ~/.ssh/id_rsa.pub
-git config --global gpg.ssh.allowedSignersFile '~/.config/git/allowed-signers'
-echo "<email> $(cat ~/.ssh/id_rsa.pub)" > ~/.config/git/allowed-signers
 ```
-
-## Power10k zsh theme font
-
-*Note: this is usually only required on first deployment.*
-
-Requires the installation of the fonts associated to the power10k zsh theme: https://github.com/romkatv/powerlevel10k#fonts
-
-Then, configure VSCode to use them.
-
-![image](https://user-images.githubusercontent.com/5485061/156640884-0d2001ef-5f3c-4372-8d07-b4c87d2f6783.png)

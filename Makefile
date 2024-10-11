@@ -1,5 +1,5 @@
-# Note: these can be overriden on the command line e.g. `make VERSION=2024.08`
-VERSION=2024.08
+# Note: these can be overriden on the command line e.g. `make VERSION=2024.10`
+VERSION=2024.10
 
 .PHONY: setup clean base alapenna
 
@@ -15,4 +15,4 @@ base: setup
 	docker buildx build --push --platform=linux/arm64,linux/amd64 -t portainer/dev-toolkit:$(VERSION) -f Dockerfile .
 
 alapenna:
-	docker buildx build --no-cache --load -t portainer-dev-toolkit -f user-toolkits/alapenna/Dockerfile .
+	docker buildx build --no-cache --load -t portainer-dev-toolkit:alapenna -f user-toolkits/alapenna/Dockerfile .
