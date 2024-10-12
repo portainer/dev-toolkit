@@ -45,7 +45,15 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
 
 # Install docker compose plugin
 RUN mkdir -p /root/.docker/cli-plugins/ && \
-	curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /root/.docker/cli-plugins/docker-compose && \
+	if [ "$TARGETARCH" = "amd64" ]; then \
+		COMPOSE_ARCH="x86_64"; \
+	elif [ "$TARGETARCH" = "arm64" ]; then \
+		COMPOSE_ARCH="aarch64"; \
+	else \
+		echo "Unsupported architecture: $TARGETARCH" >&2; \
+		exit 1; \
+	fi && \
+	curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${COMPOSE_ARCH}" -o /root/.docker/cli-plugins/docker-compose && \
 	chmod +x /root/.docker/cli-plugins/docker-compose
 
 # Install NodeJS
