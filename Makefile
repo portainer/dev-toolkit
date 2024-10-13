@@ -3,7 +3,6 @@ VERSION=2024.10
 
 .PHONY: base-amd64 base-arm64 base alapenna
 
-
 base-amd64: 
 	docker build --push --platform=linux/amd64 -t portainer/dev-toolkit:$(VERSION)-amd64 -f Dockerfile .
 
