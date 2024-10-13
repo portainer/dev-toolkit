@@ -31,14 +31,12 @@ The `portainer/dev-toolkit` image is using DockerHub automatic builds to build m
 
 E.g. creating and pushing a new `2024.10` tag in this repository will automatically build `portainer/dev-toolkit:2024.10`.
 
+> **Warning**  
+> The automatic builds are currently disabled.
+
 # Manual build
 
 Follow the instructions below if you wish to build the image manually.
-
-> **Warning**  
-> Currently, the multi-arch image for Linux ARM64 and Linux AMD64 **must be built on a Linux AMD64** host.
-> See https://github.com/docker/buildx/issues/495#issuecomment-761562905 for more details about the issue.
-
 Use the following command to build and push the base image (make sure you are authenticated to DockerHub first):
 
 ```
