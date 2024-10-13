@@ -1,18 +1,22 @@
 # Note: these can be overriden on the command line e.g. `make VERSION=2024.10`
 VERSION=2024.10
 
-.PHONY: setup clean base alapenna
+.PHONY: base-amd64 base-arm64 base alapenna
 
-setup:
-	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-	docker buildx create --name multiarch --driver docker-container --use
-	docker buildx inspect --bootstrap
 
-clean:
-	docker buildx rm multiarch
+base-amd64: 
+	docker build --push --platform=linux/amd64 -t portainer/dev-toolkit:$(VERSION)-amd64 -f Dockerfile .
 
-base: setup
-	docker buildx build --push --platform=linux/arm64,linux/amd64 -t portainer/dev-toolkit:$(VERSION) -f Dockerfile .
+base-arm64: 
+	docker build --push --platform=linux/arm64 -t portainer/dev-toolkit:$(VERSION)-arm64 -f Dockerfile .
 
-alapenna:
+# Note: buildx sucks for multi-arch: https://skyworkz.nl/blog/multi-arch-docker-image-10x-faster
+base: base-amd64 base-arm64
+	docker manifest create \
+		portainer/dev-toolkit:$(VERSION) \
+		portainer/dev-toolkit:$(VERSION)-amd64 \
+		portainer/dev-toolkit:$(VERSION)-arm64
+	docker manifest push portainer/dev-toolkit:$(VERSION)
+
+alapenna: base
 	docker buildx build --no-cache --load -t portainer-dev-toolkit:alapenna -f user-toolkits/alapenna/Dockerfile .
