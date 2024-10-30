@@ -38,4 +38,6 @@ Inside the terminal of your IDE:
 # Configure the git user
 git config --global user.email <email>
 git config --global user.name <name>
+git config --global commit.gpgsign true
+git config --global user.signingkey <key_id>
 ```
