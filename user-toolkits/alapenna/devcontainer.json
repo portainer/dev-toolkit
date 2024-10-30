@@ -4,6 +4,7 @@
 	"forwardPorts": [8000, 8999, 9000, 9443],
 	"mounts": [
 		"source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind",
+		"source=${localEnv:HOME}/.gnupg,target=/root/.gnupg,type=bind",
 		"source=${localEnv:HOME}/workspaces/toolkit-workspace,target=/workspace,type=bind",
 		"source=${localEnv:HOME}/tmp/dev-toolkit,target=/share-tmp,type=bind",
 		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
