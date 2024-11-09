@@ -32,7 +32,7 @@ The `portainer/dev-toolkit` image is using DockerHub automatic builds to build m
 E.g. creating and pushing a new `2024.11` tag in this repository will automatically build `portainer/dev-toolkit:2024.11`.
 
 > **Warning**  
-> The automatic builds are currently disabled. Manual builds on ARM64 machines are the way to go for now.
+> The automatic builds are currently disabled. Reach out to @deviantony for building newer versions of the base image using manual instructions below.
 
 # Manual build
 
@@ -51,9 +51,15 @@ The container image is distributed by Portainer via `portainer/dev-toolkit`, che
 
 # How to use it
 
+## Use the base image
+
+Create a `.devcontainer` folder in your project and copy the `devcontainer.json` file that is provided in this repository inside.
+
+Open your project in your IDE using the <u>Open Folder in Container</u> option and start coding! You'll be using the base image, see below for customization options.
+
 ## Customize it!
 
-Developers should be able to customize the environment to their liking (I prefer work with zsh as a shell for example), this dev toolkit was designed to be extended.
+Developers should be able to customize the environment to their liking (I prefer to work with zsh as a shell for example), this dev toolkit was designed to be extended.
 
 See the `examples/` and `user-toolkits` folders for a list of examples on how you can customize your dev toolkit.
 
