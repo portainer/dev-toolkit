@@ -6,11 +6,15 @@ It includes the following tools:
 * httpie for easy HTTP requesting (http://httpie.io/)
 * air for golang app live reload (https://github.com/air-verse/air)
 
-I store my repositories in `/root/workspace` (which is a symlink to `/workspace`).
+This dev container is a bit different from the base dev container. It creates a Docker volume and mounts it at `/workspace`. All the code for my projects are stored in this folder/volume.
+
+This is supposed to provide better performances: https://code.visualstudio.com/remote/advancedcontainers/improve-performance#_use-a-named-volume-for-your-entire-source-tree
+
+
 It includes a few folders shared with the host:
 * `/root/.ssh`: for SSH keys
 * `/root/.gnupg`: for GPG keys
-* `/workspace`: for all my git repositories that I have on my host
+* `/src`: this contains all the repositories that I have already cloned on my machine - handy if I need to copy across to `/workspace`.
 * `/share-tmp`: for sharing temporary files between the host and the container
 
 For more details, see the `devcontainer.json` and the `Dockerfile` files in this directory.
