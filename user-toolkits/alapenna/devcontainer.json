@@ -5,10 +5,11 @@
 	"mounts": [
 		"source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind",
 		"source=${localEnv:HOME}/.gnupg,target=/root/.gnupg,type=bind",
-		"source=${localEnv:HOME}/workspaces/toolkit-workspace,target=/workspace,type=bind",
 		"source=${localEnv:HOME}/tmp/dev-toolkit,target=/share-tmp,type=bind",
 		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
 	],
+	"workspaceMount": "source=portainer-dev-toolkit,target=/workspace,type=volume",
+	"workspaceFolder": "/workspace",
 	"customizations": {
 		"vscode": {
 			"extensions": [
