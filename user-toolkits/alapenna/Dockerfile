@@ -14,6 +14,15 @@ RUN curl -SsL https://packages.httpie.io/deb/KEY.gpg | apt-key add - \
 RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.2.1/zsh-in-docker.sh)"
 ENV SHELL=/bin/zsh
 
+# Install kubectl
+RUN cd /tmp && \
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+    install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
+    rm /tmp/kubectl
+
+# Install helm
+RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
 # Install air
 RUN go install github.com/air-verse/air@latest
 
