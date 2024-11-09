@@ -32,7 +32,7 @@ The `portainer/dev-toolkit` image is using DockerHub automatic builds to build m
 E.g. creating and pushing a new `2024.11` tag in this repository will automatically build `portainer/dev-toolkit:2024.11`.
 
 > **Warning**  
-> The automatic builds are currently disabled.
+> The automatic builds are currently disabled. Manual builds on ARM64 machines are the way to go for now.
 
 # Manual build
 
