@@ -1,4 +1,4 @@
-FROM portainer/dev-toolkit:2024.10
+FROM portainer/dev-toolkit:2024.11
 
 # Create a workspace folder and link it to /root/workspace
 # I also create specific folders for SSH keys and Git configuration
