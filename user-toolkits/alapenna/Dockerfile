@@ -1,9 +1,7 @@
 FROM portainer/dev-toolkit:2024.11
 
-# Create a workspace folder and link it to /root/workspace
-# I also create specific folders for SSH keys and Git configuration
-RUN mkdir -p /workspace /root/.ssh /root/.config/git && \
-    ln -s /workspace /root/workspace
+# Create a specific folder for Git configurations
+RUN mkdir -p /root/.config/git
 
 # Install httpie: http://httpie.io/
 RUN curl -SsL https://packages.httpie.io/deb/KEY.gpg | apt-key add - \
