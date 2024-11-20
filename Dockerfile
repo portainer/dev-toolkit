@@ -31,6 +31,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
 	libarchive-tools \
 	openssh-client \
 	iputils-ping \
+	iproute2 \
 	nano \
 	software-properties-common \
 	&& rm -rf /var/lib/apt/lists/*
