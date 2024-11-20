@@ -1,7 +1,8 @@
 {
 	"name": "portainer-dev-toolkit",
 	"image": "portainer-dev-toolkit:alapenna",
-	"forwardPorts": [6443, 8000, 8999, 9000, 9443],
+	"forwardPorts": [6443, 8999, 9000],
+	"appPort": [8000, 9443],
 	"mounts": [
 		"source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind",
 		"source=${localEnv:HOME}/.gnupg,target=/root/.gnupg,type=bind",
