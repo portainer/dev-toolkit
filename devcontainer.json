@@ -8,8 +8,11 @@
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// Use 'forwardPorts' to make a list of ports inside the container available over localhost.
 	"forwardPorts": [8000, 8999, 9000, 9443],
+
+	// Use 'appPort' with the format "hostPort:containerPort" to expose a list of ports on the host network.
+	"appPort": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "go version",
