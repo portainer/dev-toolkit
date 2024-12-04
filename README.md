@@ -29,7 +29,7 @@ See `Dockerfile` for more details.
 
 The `portainer/dev-toolkit` image is using DockerHub automatic builds to build multi-arch (amd64, arm64) images based on this git repository tags.
 
-E.g. creating and pushing a new `2024.11` tag in this repository will automatically build `portainer/dev-toolkit:2024.11`.
+E.g. creating and pushing a new `2024.12` tag in this repository will automatically build `portainer/dev-toolkit:2024.12`.
 
 > **Warning**  
 > The automatic builds are currently disabled. Reach out to @deviantony for building newer versions of the base image using manual instructions below.
@@ -69,7 +69,7 @@ All you will need is to build it first:
 docker buildx build -t my-devkit -f examples/zsh/Dockerfile .
 ```
 
-Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2024.11` with your image in the `devcontainer.json` file:
+Then you can use the instructions above to run it, just replace the official `portainer/dev-toolkit:2024.12` with your image in the `devcontainer.json` file:
 
 ```json
 {
