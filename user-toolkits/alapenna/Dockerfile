@@ -21,8 +21,18 @@ RUN cd /tmp && \
 # Install helm
 RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-# Install air
-RUN go install github.com/air-verse/air@latest
+# Install Golang tools: air, gonb, protoc go plugins and dependencies
+# https://github.com/janpfeifer/gonb?tab=readme-ov-file#linux-and-macos-installation-using-standard-go-tools
+# https://grpc.io/docs/languages/go/quickstart/#prerequisites
+RUN go install github.com/air-verse/air@latest && \
+    go install github.com/janpfeifer/gonb@latest && \
+    go install golang.org/x/tools/cmd/goimports@latest && \
+    go install golang.org/x/tools/gopls@latest && \
+    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# Install protocol buffer compiler
+RUN apt install -y protobuf-compiler
 
 # Configure git to use SSH
 # This is useful to retrieve private Go packages
