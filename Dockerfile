@@ -36,9 +36,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
 	software-properties-common \
 	&& rm -rf /var/lib/apt/lists/*
 
-# Install Docker CLI & Docker Compose Plugin
+# Install Docker CLI
 ARG DOCKER_PACKAGE=5:${DOCKER_VERSION}-1~ubuntu.24.04~noble
-ARG DOCKER_COMPOSE_PACKAGE=${DOCKER_COMPOSE_VERSION}-1~ubuntu.24.04~noble
 RUN install -m 0755 -d /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
     chmod a+r /etc/apt/keyrings/docker.asc && \
@@ -46,7 +45,20 @@ RUN install -m 0755 -d /etc/apt/keyrings && \
     $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
     tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && \
-    apt-get install -y docker-ce-cli=${DOCKER_PACKAGE} docker-compose-plugin=${DOCKER_COMPOSE_PACKAGE}
+    apt-get install -y docker-ce-cli=${DOCKER_PACKAGE}
+
+# Install Docker Compose plugin
+RUN mkdir -p /root/.docker/cli-plugins && \
+    if [ "$(uname -m)" = "aarch64" ]; then \
+        ARCH=aarch64; \
+    elif [ "$(uname -m)" = "x86_64" ]; then \
+        ARCH=x86_64; \
+    else \
+        echo "Unsupported architecture"; exit 1; \
+    fi && \
+    curl -SL https://github.com/docker/compose/releases/download/v${DOCKER_COMPOSE_VERSION}/docker-compose-linux-${ARCH} \
+        -o /root/.docker/cli-plugins/docker-compose && \
+    chmod +x /root/.docker/cli-plugins/docker-compose
 
 # Install Golang
 ARG GO_PACKAGE=go${GO_VERSION}.${TARGETOS}-${TARGETARCH}
