@@ -86,3 +86,7 @@ ENV GOROOT="/usr/local/go" \
     GOPATH="/root/go" \
     PATH="/usr/local/go/bin:/root/go/bin:/root/.nvm/versions/node/v${NODE_VERSION}/bin:${PATH}"
 
+# Set a custom entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
