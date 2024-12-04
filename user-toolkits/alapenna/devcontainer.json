@@ -2,7 +2,7 @@
 	"name": "portainer-dev-toolkit",
 	"image": "portainer-dev-toolkit:alapenna",
 	"forwardPorts": [6443, 8999, 9000],
-	"appPort": [8000, 9443],
+	"appPort": ["8000:8000", "9443:9443"],
 	"mounts": [
 		"source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind",
 		"source=${localEnv:HOME}/.gnupg,target=/root/.gnupg,type=bind",
@@ -17,7 +17,9 @@
 			"extensions": [
 				"ms-vscode.makefile-tools",
 				"ms-azuretools.vscode-docker",
-				"golang.Go"
+				"golang.Go",
+				"zxh404.vscode-proto3",
+				"ms-toolsai.jupyter"
 			]
 		}
 	},
