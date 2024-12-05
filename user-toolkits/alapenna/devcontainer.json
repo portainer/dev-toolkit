@@ -1,6 +1,7 @@
 {
 	"name": "portainer-dev-toolkit",
 	"image": "portainer-dev-toolkit:alapenna",
+	"postStartCommand": "/post-start.sh",
 	"forwardPorts": [6443, 8999, 9000],
 	"appPort": ["8000:8000", "9443:9443"],
 	"mounts": [

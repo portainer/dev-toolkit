@@ -86,7 +86,6 @@ ENV GOROOT="/usr/local/go" \
     GOPATH="/root/go" \
     PATH="/usr/local/go/bin:/root/go/bin:/root/.nvm/versions/node/v${NODE_VERSION}/bin:${PATH}"
 
-# Set a custom entrypoint
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+# Inject a post-start.sh script that can be used via postStartCommand
+COPY post-start.sh /post-start.sh
+RUN chmod +x /post-start.sh
