@@ -8,6 +8,9 @@
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
+	// Script that can be executed once the container is started.
+	"postStartCommand": "/post-start.sh",
+
 	// Use 'forwardPorts' to make a list of ports inside the container available over localhost (localhost only).
 	"forwardPorts": [8000, 8999, 9000, 9443],
 
