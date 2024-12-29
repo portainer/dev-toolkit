@@ -31,6 +31,9 @@ RUN go install github.com/air-verse/air@latest && \
     go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
     go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
+# Install gonb kernel
+RUN gonb --install
+
 # Install protocol buffer compiler
 RUN apt install -y protobuf-compiler
 
