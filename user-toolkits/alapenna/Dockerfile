@@ -37,11 +37,5 @@ RUN gonb --install
 # Install protocol buffer compiler
 RUN apt install -y protobuf-compiler
 
-# Configure git to use SSH
-# This is useful to retrieve private Go packages
-# Note: this has to be done as one of the last steps in the image build process as it can
-# mess up with previous steps using Git (oh-my-zsh installation for example)
-RUN printf '[url "ssh://git@github.com/"]\n\tinsteadOf = https://github.com/\n' > /root/.gitconfig
-
 # Update .zshrc
 RUN echo 'export PATH="$PATH:/root/.local/bin"' >> /root/.zshrc

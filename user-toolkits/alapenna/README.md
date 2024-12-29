@@ -53,4 +53,6 @@ git config --global user.email <email>
 git config --global user.name <name>
 git config --global commit.gpgsign true
 git config --global user.signingkey <key_id>
+# Configure Git to prefer SSH, useful to retrieve Go private packages
+git config --global url.ssh://git@github.com/.insteadOf https://github.com/
 ```
