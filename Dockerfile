@@ -34,6 +34,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
 	iproute2 \
 	nano \
 	software-properties-common \
+    unzip \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Install Docker CLI

@@ -35,7 +35,8 @@ RUN go install github.com/air-verse/air@latest && \
 RUN gonb --install
 
 # Install protocol buffer compiler
-RUN apt install -y protobuf-compiler
+RUN curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v29.2/protoc-29.2-linux-aarch_64.zip -o /tmp/protoc.zip && \
+    unzip /tmp/protoc.zip -d /root/.local
 
 # Update .zshrc
 RUN echo 'export PATH="$PATH:/root/.local/bin"' >> /root/.zshrc
