@@ -21,7 +21,8 @@
 				"golang.Go",
 				"zxh404.vscode-proto3",
 				"ms-toolsai.jupyter",
-				"stateful.runme"
+				"stateful.runme",
+				"pbkit.vscode-pbkit"
 			]
 		}
 	},
