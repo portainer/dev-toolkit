@@ -1,0 +1,11 @@
+name: "dev-toolkit"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'placeholder task'
+        run: "echo placeholder"
