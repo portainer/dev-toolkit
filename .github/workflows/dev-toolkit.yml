@@ -2,10 +2,63 @@ name: "dev-toolkit"
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "release tag e.g. 2025.01"
+        default: "2025.01"
+        required: true
+
+env:
+  DOCKER_HUB_REPO: portainer/dev-toolkit
+  IMAGE_TAG: ${{ inputs.release_tag }}
 
 jobs:
-  placeholder:
+  build_images:
     runs-on: ubuntu-latest
     steps:
-      - name: 'placeholder task'
-        run: "echo placeholder"
+      - name: "[preparation] checkout"
+        uses: actions/checkout@v4.1.1
+
+      - name: "[preparation] set up qemu"
+        uses: docker/setup-qemu-action@v3.2.0
+
+      - name: "[preparation] set up docker context for buildx"
+        run: docker context create builders
+
+      - name: "[preparation] set up docker buildx"
+        uses: docker/setup-buildx-action@v3.10.0
+        with:
+          endpoint: builders
+          driver-opts: image=moby/buildkit:v0.20.0
+
+      - name: "[preparation] docker login"
+        uses: docker/login-action@v3.3.0
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: "build and push amd64 image"
+        uses: docker/build-push-action@v6.7.0
+        with:
+          platforms: linux/amd64
+          tags: ${{ env.DOCKER_HUB_REPO }}:${{ env.IMAGE_TAG }}-amd64
+          sbom: true
+          provenance: true
+          push: true
+
+      - name: "build and push arm64 image"
+        uses: docker/build-push-action@v6.7.0
+        with:
+          platforms: linux/arm64
+          tags: ${{ env.DOCKER_HUB_REPO }}:${{ env.IMAGE_TAG }}-arm64
+          sbom: true
+          provenance: true
+          push: true
+
+      - name: "create and push multi-arch manifest"
+        run: |
+          docker manifest create \
+            ${{ env.DOCKER_HUB_REPO }}:${{ env.IMAGE_TAG }} \
+            ${{ env.DOCKER_HUB_REPO }}:${{ env.IMAGE_TAG }}-amd64 \
+            ${{ env.DOCKER_HUB_REPO }}:${{ env.IMAGE_TAG }}-arm64
+          docker manifest push ${{ env.DOCKER_HUB_REPO }}:${{ env.IMAGE_TAG }}
