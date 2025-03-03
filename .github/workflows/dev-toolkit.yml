@@ -7,10 +7,13 @@ on:
         description: "release tag e.g. 2025.01"
         default: "2025.01"
         required: true
+  push:
+    tags:
+      - '*'
 
 env:
   DOCKER_HUB_REPO: portainer/dev-toolkit
-  IMAGE_TAG: ${{ inputs.release_tag }}
+  IMAGE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.release_tag }}
 
 jobs:
   build_images:
@@ -45,6 +48,7 @@ jobs:
       - name: "build and push image"
         uses: docker/build-push-action@v6.7.0
         with:
+          context: .
           platforms: ${{ matrix.config.platform }}/${{ matrix.config.arch }}
           tags: ${{ env.DOCKER_HUB_REPO }}:${{ env.IMAGE_TAG }}-${{ matrix.config.platform }}-${{ matrix.config.arch }}
           sbom: false
@@ -52,6 +56,10 @@ jobs:
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          outputs: type=registry
+          build-args: |
+            BUILDKIT_PROGRESS=plain
+          builder: builders
 
   build_manifests:
     needs: [build_images]
