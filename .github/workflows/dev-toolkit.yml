@@ -30,9 +30,6 @@ jobs:
       - name: "[preparation] set up qemu"
         uses: docker/setup-qemu-action@v3.2.0
 
-      - name: "[preparation] set up docker context for buildx"
-        run: docker context create builders
-
       - name: "[preparation] set up docker buildx"
         uses: docker/setup-buildx-action@v3.10.0
         with:
@@ -48,7 +45,6 @@ jobs:
       - name: "build and push image"
         uses: docker/build-push-action@v6.7.0
         with:
-          context: .
           platforms: ${{ matrix.config.platform }}/${{ matrix.config.arch }}
           tags: ${{ env.DOCKER_HUB_REPO }}:${{ env.IMAGE_TAG }}-${{ matrix.config.platform }}-${{ matrix.config.arch }}
           sbom: false
@@ -57,9 +53,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=registry
-          build-args: |
-            BUILDKIT_PROGRESS=plain
-          builder: builders
 
   build_manifests:
     needs: [build_images]
