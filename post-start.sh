@@ -4,5 +4,5 @@
 
 # We clean-up the tmp folder as part of the startup because it can 
 # be flooded very fast with files and folders related to vscode, devextension, yarn, gobuilds etc...
-# This removes all the files in the /tmp folder that are older than 7 days.
-find /tmp -mindepth 1 -mtime +7 -exec rm -rf {} +
+# This removes all the files in the /tmp folder that are older than 3 days.
+find /tmp -mindepth 1 -mtime +3 -exec rm -rf {} +

@@ -1,6 +1,6 @@
 {
 	"name": "portainer-dev-toolkit",
-	"image": "portainer/dev-toolkit:2025.01",
+	"image": "portainer/dev-toolkit:2025.03",
 	"forwardPorts": [8000, 8999, 9000, 9443],
 	"mounts": [
 		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
