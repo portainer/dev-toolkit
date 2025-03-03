@@ -42,8 +42,8 @@ jobs:
         with:
           platforms: linux/amd64
           tags: ${{ env.DOCKER_HUB_REPO }}:${{ env.IMAGE_TAG }}-amd64
-          sbom: true
-          provenance: true
+          sbom: false
+          provenance: false
           push: true
 
       - name: "build and push arm64 image"
@@ -51,8 +51,8 @@ jobs:
         with:
           platforms: linux/arm64
           tags: ${{ env.DOCKER_HUB_REPO }}:${{ env.IMAGE_TAG }}-arm64
-          sbom: true
-          provenance: true
+          sbom: false
+          provenance: false
           push: true
 
       - name: "create and push multi-arch manifest"
