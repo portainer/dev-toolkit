@@ -51,7 +51,7 @@ jobs:
           provenance: false
           push: true
           cache-from: type=gha
-          cache-to: type=gha,mode=max          
+          cache-to: type=gha,mode=max
 
   build_manifests:
     needs: [build_images]
