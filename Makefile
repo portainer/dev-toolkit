@@ -18,4 +18,4 @@ base: base-amd64 base-arm64
 	docker manifest push portainer/dev-toolkit:$(VERSION)
 
 alapenna:
-	docker buildx build --no-cache --load -t portainer-dev-toolkit:alapenna -f user-toolkits/alapenna/Dockerfile .
+	docker build --platform=linux/arm64 -t portainer-dev-toolkit:alapenna -f user-toolkits/alapenna/Dockerfile .
