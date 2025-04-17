@@ -20,8 +20,6 @@
 				"ms-azuretools.vscode-docker",
 				"golang.Go",
 				"zxh404.vscode-proto3",
-				"ms-toolsai.jupyter",
-				"stateful.runme",
 				"pbkit.vscode-pbkit"
 			]
 		}

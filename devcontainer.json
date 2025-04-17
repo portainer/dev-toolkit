@@ -3,7 +3,7 @@
 {
 	"name": "portainer-dev-toolkit",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "portainer/dev-toolkit:2025.03",
+	"image": "portainer/dev-toolkit:2025.04",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
