@@ -16,7 +16,7 @@ Have a look at the rest of the documentation below for more configuration/custom
 
 # About
 
-This toolkit is based on the Ubuntu 24.04 LTS image and comes with the following tools pre-installed:
+This toolkit is based on the Ubuntu 24.10 LTS image and comes with the following tools pre-installed:
 
 * Golang
 * Docker CLI
