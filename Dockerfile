@@ -1,4 +1,4 @@
-FROM ubuntu:25.04
+FROM ubuntu:24.10
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -38,7 +38,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -yq \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Install Docker CLI
-ARG DOCKER_PACKAGE=5:${DOCKER_VERSION}-1~ubuntu.24.04~noble
+ARG DOCKER_PACKAGE=5:${DOCKER_VERSION}-1~ubuntu.24.10~oracular
 RUN install -m 0755 -d /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
     chmod a+r /etc/apt/keyrings/docker.asc && \
