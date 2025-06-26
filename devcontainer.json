@@ -1,43 +1,43 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/go
 {
-	"name": "portainer-dev-toolkit",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "portainer/dev-toolkit:2025.04",
+  "name": "portainer-dev-toolkit",
+  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  "image": "portainer/dev-toolkit:2025.06",
 
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  // "features": {},
 
-	// Script that can be executed once the container is started.
-	"postStartCommand": "/post-start.sh",
+  // Script that can be executed once the container is started.
+  "postStartCommand": "/post-start.sh",
 
-	// Use 'forwardPorts' to make a list of ports inside the container available over localhost (localhost only).
-	"forwardPorts": [8000, 8999, 9000, 9443],
+  // Use 'forwardPorts' to make a list of ports inside the container available over localhost (localhost only).
+  "forwardPorts": [8000, 8999, 9000, 9443],
 
-	// Use the 'appPort' field to define ports in the format "hostPort:containerPort". 
-	// This is useful for exposing specific container ports on the host network. 
-	// Specify ports here if your services need to be accessible via the host IP.
-	"appPort": [],
+  // Use the 'appPort' field to define ports in the format "hostPort:containerPort".
+  // This is useful for exposing specific container ports on the host network.
+  // Specify ports here if your services need to be accessible via the host IP.
+  "appPort": [],
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "go version",
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "go version",
 
-	// Use 'mounts' to mount host directories and volumes into the container.
-	"mounts": [
-		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-	],
+  // Use 'mounts' to mount host directories and volumes into the container.
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
 
-	// Configure tool-specific properties.
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"ms-vscode.makefile-tools",
-				"ms-azuretools.vscode-docker",
-				"golang.Go"
-			]
-		}
-	},
+  // Configure tool-specific properties.
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.makefile-tools",
+        "ms-azuretools.vscode-docker",
+        "golang.Go"
+      ]
+    }
+  },
 
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	"remoteUser": "root"
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  "remoteUser": "root"
 }
