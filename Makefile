@@ -1,12 +1,12 @@
-# Note: these can be overriden on the command line e.g. `make VERSION=2025.04`
-VERSION=2025.04
+# Note: these can be overriden on the command line e.g. `make VERSION=2025.06`
+VERSION=2025.06
 
 .PHONY: base-amd64 base-arm64 base alapenna
 
-base-amd64: 
+base-amd64:
 	docker build --push --platform=linux/amd64 -t portainer/dev-toolkit:$(VERSION)-amd64 -f Dockerfile .
 
-base-arm64: 
+base-arm64:
 	docker build --push --platform=linux/arm64 -t portainer/dev-toolkit:$(VERSION)-arm64 -f Dockerfile .
 
 # Note: buildx sucks for multi-arch: https://skyworkz.nl/blog/multi-arch-docker-image-10x-faster
