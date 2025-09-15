@@ -21,18 +21,11 @@ RUN cd /tmp && \
 # Install helm
 RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-# Install Golang tools: air, gonb, protoc go plugins and dependencies
-# https://github.com/janpfeifer/gonb?tab=readme-ov-file#linux-and-macos-installation-using-standard-go-tools
+# Install Golang tools: air, protoc go plugins and dependencies
 # https://grpc.io/docs/languages/go/quickstart/#prerequisites
 RUN go install github.com/air-verse/air@latest && \
-    go install github.com/janpfeifer/gonb@latest && \
-    go install golang.org/x/tools/cmd/goimports@latest && \
-    go install golang.org/x/tools/gopls@latest && \
     go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
     go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-
-# Install gonb kernel
-RUN gonb --install
 
 # Install protocol buffer compiler
 RUN curl -L https://github.com/protocolbuffers/protobuf/releases/download/v29.3/protoc-29.3-linux-aarch_64.zip -o /tmp/protoc.zip && \
