@@ -31,9 +31,6 @@ The `portainer/dev-toolkit` image is using DockerHub automatic builds to build m
 
 E.g. creating and pushing a new `2025.09` tag in this repository will automatically build `portainer/dev-toolkit:2025.09`.
 
-> **Warning**
-> The automatic builds are currently disabled. Reach out to @deviantony for building newer versions of the base image using manual instructions below.
-
 # Manual build
 
 Follow the instructions below if you wish to build the image manually.
