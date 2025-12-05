@@ -31,6 +31,7 @@ RUN sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="spaceship"/' /root/.zshrc \
 # Core CLI tools
 # ============================================
 RUN apt-get update && apt-get install -y \
+    file \
     fzf \
     ripgrep \
     fd-find \
@@ -115,6 +116,9 @@ RUN cat >> /root/.zshrc <<'EOF'
 
 # Add Claude Code to PATH
 export PATH="$HOME/.local/bin:$PATH"
+
+# Set micro as default editor (used by yazi, git, etc.)
+export EDITOR="micro"
 
 # Zoxide
 eval "$(zoxide init zsh)"
