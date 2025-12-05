@@ -29,7 +29,6 @@ cmd_enter() {
     echo "Creating container..."
     docker run -d \
       --name "$NAME" \
-      --platform linux/arm64 \
       -p 127.0.0.1:6443:6443 \
       -p 127.0.0.1:8999:8999 \
       -p 127.0.0.1:9000:9000 \
