@@ -25,6 +25,7 @@ make base-arm64
 
 # Build custom user toolkit
 make alapenna
+make alapenna-ghostty
 ```
 
 ## Building Portainer Inside the Toolkit
