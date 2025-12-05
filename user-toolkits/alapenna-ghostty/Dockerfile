@@ -7,7 +7,7 @@ ENV TERM=xterm-256color
 ARG TARGETARCH
 
 # ============================================
-# zsh + oh-my-zsh + spaceship prompt
+# zsh + oh-my-zsh + starship prompt
 # ============================================
 RUN apt-get update && apt-get install -y zsh wget curl git \
     && rm -rf /var/lib/apt/lists/*
@@ -15,17 +15,54 @@ RUN apt-get update && apt-get install -y zsh wget curl git \
 # Install oh-my-zsh
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 
-# Install spaceship prompt
-RUN git clone https://github.com/spaceship-prompt/spaceship-prompt.git "/root/.oh-my-zsh/custom/themes/spaceship-prompt" --depth=1 \
-    && ln -s "/root/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme" "/root/.oh-my-zsh/custom/themes/spaceship.zsh-theme"
-
 # Install zsh plugins
 RUN git clone https://github.com/zsh-users/zsh-autosuggestions /root/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
     && git clone https://github.com/zsh-users/zsh-syntax-highlighting /root/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
 
-# Configure zsh
-RUN sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="spaceship"/' /root/.zshrc \
+# Configure zsh plugins (disable theme, starship will handle prompt)
+RUN sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME=""/' /root/.zshrc \
     && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' /root/.zshrc
+
+# Install starship prompt
+RUN curl -sS https://starship.rs/install.sh | sh -s -- -y
+
+# Starship config (two-line minimal)
+RUN mkdir -p /root/.config && cat > /root/.config/starship.toml <<'EOF'
+format = """
+$directory\
+$git_branch\
+$git_status\
+$line_break\
+$character"""
+
+[directory]
+style = "cyan bold"
+truncation_length = 5
+truncate_to_repo = false
+
+[git_branch]
+style = "purple bold"
+format = "[│ $symbol$branch]($style)"
+symbol = ""
+
+[git_status]
+style = "red bold"
+format = "[$all_status$ahead_behind]($style)"
+conflicted = "="
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕"
+untracked = "?"
+stashed = ""
+modified = "!"
+staged = "+"
+renamed = "»"
+deleted = "✘"
+
+[character]
+success_symbol = "[>](green bold)"
+error_symbol = "[>](red bold)"
+EOF
 
 # ============================================
 # Core CLI tools
@@ -144,10 +181,8 @@ function yy() {
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
 
-# Spaceship config
-export SPACESHIP_PROMPT_ADD_NEWLINE=false
-export SPACESHIP_CHAR_SYMBOL="❯ "
-export SPACESHIP_GIT_STATUS_STASHED=""
+# Initialize starship prompt
+eval "$(starship init zsh)"
 EOF
 
 # ============================================
