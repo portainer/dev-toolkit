@@ -1,0 +1,119 @@
+#!/bin/zsh
+# devbox - Container lifecycle manager for alapenna-ghostty toolkit
+#
+# Install:
+#   cp devbox ~/.local/bin/
+#   chmod +x ~/.local/bin/devbox
+#
+# Usage:
+#   devbox          # Enter the container (creates/starts if needed)
+#   devbox stop     # Stop the container
+#   devbox destroy  # Remove container (volume persists)
+#   devbox status   # Show container status
+
+set -e
+
+NAME="dev-toolkit-ghostty"
+VOLUME="dev-toolkit-ghostty-workspace"
+IMAGE="portainer-dev-toolkit:alapenna-ghostty"
+
+cmd_enter() {
+  # Check if OrbStack/Docker is running
+  if ! docker info &>/dev/null; then
+    echo "Docker not running. Start OrbStack first."
+    exit 1
+  fi
+
+  # Create container if it doesn't exist
+  if ! docker ps -a --format '{{.Names}}' | grep -q "^${NAME}$"; then
+    echo "Creating container..."
+    docker run -d \
+      --name "$NAME" \
+      --platform linux/arm64 \
+      -p 127.0.0.1:6443:6443 \
+      -p 127.0.0.1:8999:8999 \
+      -p 127.0.0.1:9000:9000 \
+      -p 8000:8000 \
+      -p 9443:9443 \
+      -v ~/.ssh:/root/.ssh \
+      -v ~/.gnupg:/root/.gnupg \
+      -v ~/tmp/dev-toolkit:/share-tmp \
+      -v ~/workspaces/toolkit-workspace:/src \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -v "$VOLUME":/workspace \
+      -w /workspace \
+      "$IMAGE" \
+      sleep infinity
+  fi
+
+  # Start container if stopped
+  if ! docker ps --format '{{.Names}}' | grep -q "^${NAME}$"; then
+    echo "Starting container..."
+    docker start "$NAME"
+  fi
+
+  # Enter the container with a login shell
+  # Each terminal gets its own independent shell session
+  exec docker exec -it "$NAME" /bin/zsh -l
+}
+
+cmd_stop() {
+  if docker ps --format '{{.Names}}' | grep -q "^${NAME}$"; then
+    echo "Stopping container..."
+    docker stop "$NAME"
+  else
+    echo "Container not running."
+  fi
+}
+
+cmd_destroy() {
+  if docker ps -a --format '{{.Names}}' | grep -q "^${NAME}$"; then
+    echo "Removing container..."
+    docker rm -f "$NAME"
+    echo "Container removed. Volume '$VOLUME' preserved."
+  else
+    echo "Container does not exist."
+  fi
+}
+
+cmd_status() {
+  if ! docker info &>/dev/null; then
+    echo "Docker: not running"
+    return
+  fi
+
+  echo "Docker: running"
+
+  if docker ps --format '{{.Names}}' | grep -q "^${NAME}$"; then
+    echo "Container: running"
+  elif docker ps -a --format '{{.Names}}' | grep -q "^${NAME}$"; then
+    echo "Container: stopped"
+  else
+    echo "Container: not created"
+  fi
+
+  if docker volume ls --format '{{.Name}}' | grep -q "^${VOLUME}$"; then
+    echo "Volume: exists"
+  else
+    echo "Volume: not created"
+  fi
+}
+
+case "${1:-}" in
+  ""|enter)
+    cmd_enter
+    ;;
+  stop)
+    cmd_stop
+    ;;
+  destroy)
+    cmd_destroy
+    ;;
+  status)
+    cmd_status
+    ;;
+  *)
+    echo "Usage: devbox [enter|stop|destroy|status]"
+    exit 1
+    ;;
+esac
