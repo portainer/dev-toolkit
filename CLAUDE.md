@@ -63,7 +63,7 @@ GitHub Actions workflow builds multi-arch images (amd64, arm64) on tag push and 
 ## Creating Custom Toolkits
 
 1. Reference `examples/zsh/Dockerfile` or `user-toolkits/alapenna/Dockerfile` as starting points
-2. Create a Dockerfile extending `portainer/dev-toolkit:2025.09`
+2. Create a Dockerfile extending `portainer/dev-toolkit:2025.12`
 3. Build: `docker buildx build -t my-devkit -f path/to/Dockerfile .`
 4. Update `devcontainer.json` image field to use your custom image
 
