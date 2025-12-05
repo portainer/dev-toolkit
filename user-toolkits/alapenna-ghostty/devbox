@@ -14,7 +14,7 @@
 set -e
 
 NAME="dev-toolkit-ghostty"
-VOLUME="dev-toolkit-ghostty-workspace"
+VOLUME="portainer-dev-toolkit-ghostty"
 IMAGE="portainer-dev-toolkit:alapenna-ghostty"
 
 cmd_enter() {
