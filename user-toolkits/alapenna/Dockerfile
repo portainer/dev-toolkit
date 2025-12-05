@@ -21,6 +21,18 @@ RUN cd /tmp && \
 # Install helm
 RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
+# Install Chromium (ARM64 version from https://xtradeb.net)
+# This is required to use the Playwright MCP with Claude Code
+RUN add-apt-repository ppa:xtradeb/apps -y && \
+    apt update && \
+    apt install chromium -y
+
+# Install Claude Code
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# Install the Playwright MCP
+RUN claude mcp add playwright -- npx @playwright/mcp@latest --headless --executable-path=/usr/bin/chromium --no-sandbox --ignore-https-errors --viewport-size=1920x1080
+
 # Install Golang tools: air, protoc go plugins and dependencies
 # https://grpc.io/docs/languages/go/quickstart/#prerequisites
 RUN go install github.com/air-verse/air@latest && \
