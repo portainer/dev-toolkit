@@ -48,6 +48,7 @@ The `devbox` script manages the container lifecycle. One command handles everyth
 
 ```bash
 # Install the devbox script
+# From the user-toolkits/alapenna-ghostty directory
 cp devbox ~/.local/bin/
 chmod +x ~/.local/bin/devbox
 
