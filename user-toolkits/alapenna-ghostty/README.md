@@ -232,18 +232,27 @@ Published ports (accessible over host IP): 8000, 9443
 
 ## Potential Enhancements
 
-The following tools could be added to enhance this toolkit:
+### jj (Jujutsu)
 
-| Tool | Description | Notes |
-|------|-------------|-------|
-| **lazydocker** | Terminal UI for Docker management | `curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh \| bash` |
-| **neovim** | Advanced terminal editor (for vim users) | `apt-get install neovim` |
-| **gitui** | Fast Git TUI written in Rust (alternative to lazygit) | Download from [gitui releases](https://github.com/extrawurst/gitui/releases) |
-| **Playwright MCP** | Browser automation for Claude Code | See alapenna toolkit for reference |
-| **httpie** | User-friendly HTTP client | `apt-get install httpie` |
-| **kubectl + helm** | Kubernetes tooling | See alapenna toolkit for reference |
+Modern VCS that works on top of Git repos. Eliminates the staging area—your working copy is always a commit. Conflicts are stored in commits rather than blocking you. The `jj workspace` feature enables parallel Claude sessions on different features without the complexity of git worktrees.
 
-To add any of these, modify the Dockerfile or install them manually inside the container.
+[jj-vcs.dev](https://jj-vcs.dev)
+
+### gitui
+
+Rust-based Git TUI, noticeably faster than lazygit on large repos. Worth considering if lazygit feels sluggish.
+
+[github.com/extrawurst/gitui](https://github.com/extrawurst/gitui)
+
+### Playwright MCP
+
+MCP server that lets Claude control a browser. Useful for end-to-end testing, scraping documentation, or debugging frontend issues visually. See the alapenna toolkit for a working configuration.
+
+### httpie
+
+CLI HTTP client with human-readable output. Easier than curl for quick API debugging: `http GET api.example.com/users`
+
+`apt install httpie`
 
 ## Troubleshooting
 
