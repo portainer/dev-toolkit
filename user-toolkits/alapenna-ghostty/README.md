@@ -117,6 +117,10 @@ git config --global commit.gpgsign true
 git config --global user.signingkey <key_id>
 git config --global url.ssh://git@github.com/.insteadOf https://github.com/
 
+# Login to GitHub CLI
+gh auth login
+# Follow the prompts to authenticate
+
 # Login to Claude Code
 claude
 # Follow the authentication prompts
