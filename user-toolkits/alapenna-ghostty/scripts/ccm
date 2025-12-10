@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ccm - Claude commit message generator
-# Stages all changes, then generates a conventional commit message using Claude
+# Stages all changes, then generates a commit message using Claude
 
 set -e
 
@@ -15,9 +15,30 @@ git add -A
 
 diff=$(git diff --cached)
 
-msg=$(echo "$diff" | claude -p "Write a concise conventional commit message for this diff. Format: type(scope): description. Output ONLY the message, nothing else.")
+prompt='Write a commit message for this diff following this exact format:
 
-echo -e "\nSuggested: $msg\n"
+<subject line: imperative mood, describes the overall change, no prefix like "feat:" or "fix:">
+
+- <bullet point: specific change, starts with verb>
+- <bullet point: specific change, starts with verb>
+- ...
+
+Example:
+Update UI design spec with Step 6 implementation
+
+- Rename "Review & Deploy" to "Review & Install" throughout
+- Document actual implementation details
+- Add slide-out drawer specification
+
+Rules:
+- Subject line: imperative mood ("Add X" not "Added X"), max 72 chars
+- Body: 3-8 bullet points, each starting with a verb (Add, Fix, Update, Remove, Refactor, Extract, etc.)
+- No trailing periods on bullets
+- Output ONLY the message, no markdown fences or extra text'
+
+msg=$(echo "$diff" | claude -p "$prompt")
+
+echo -e "\nSuggested:\n$msg\n"
 read -p "Commit? [Y/n/e/u] " choice
 
 case "${choice:-y}" in

@@ -219,6 +219,8 @@ micro $(fd --type f | fzf)
 
 ### AI-Assisted Commits
 
+Use `ccm` instead of asking Claude Code to commit. This keeps your conversation context focused on development work rather than polluting it with diffs and commit operations.
+
 ```bash
 # Generate commit message with Claude (auto-stages all changes)
 ccm
