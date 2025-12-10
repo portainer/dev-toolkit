@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# ccm - Claude commit message generator
+# Stages all changes, then generates a conventional commit message using Claude
+
+set -e
+
+# Check for any changes (staged or unstaged)
+if [[ -z "$(git status --porcelain)" ]]; then
+  echo "No changes to commit."
+  exit 1
+fi
+
+# Stage everything
+git add -A
+
+diff=$(git diff --cached)
+
+msg=$(echo "$diff" | claude -p "Write a concise conventional commit message for this diff. Format: type(scope): description. Output ONLY the message, nothing else.")
+
+echo -e "\nSuggested: $msg\n"
+read -p "Commit? [Y/n/e/u] " choice
+
+case "${choice:-y}" in
+  n|N) echo "Aborted (changes remain staged)." ;;
+  e|E) git commit -e -m "$msg" ;;
+  u|U) git reset HEAD >/dev/null; echo "Unstaged all changes." ;;
+  *)   git commit -m "$msg" ;;
+esac

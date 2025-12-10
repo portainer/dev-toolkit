@@ -196,6 +196,12 @@ eval "$(starship init zsh)"
 EOF
 
 # ============================================
+# Custom scripts
+# ============================================
+COPY scripts/ccm /usr/local/bin/ccm
+RUN chmod +x /usr/local/bin/ccm
+
+# ============================================
 # Set zsh as default shell
 # ============================================
 RUN chsh -s $(which zsh)

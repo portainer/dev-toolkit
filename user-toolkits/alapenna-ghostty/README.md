@@ -28,6 +28,8 @@ user-toolkits/alapenna-ghostty/
 ├── Dockerfile        # Container image definition
 ├── devbox            # Container lifecycle script for host machine
 ├── devcontainer.json # Devcontainer configuration (alternative to devbox)
+├── scripts/
+│   └── ccm           # Claude commit message generator
 └── README.md         # This file
 ```
 
@@ -181,6 +183,7 @@ claude
 | `m` | micro |
 | `l` | eza -la --icons |
 | `cat` | bat --paging=never |
+| `ccm` | Claude commit message generator |
 
 ## Tips
 
@@ -212,6 +215,18 @@ rg "TODO" --type go
 
 # Fuzzy find and open
 micro $(fd --type f | fzf)
+```
+
+### AI-Assisted Commits
+
+```bash
+# Generate commit message with Claude (auto-stages all changes)
+ccm
+# Review the suggested message, then:
+#   Y (or Enter) - commit as-is
+#   n - abort (changes remain staged)
+#   e - edit message before committing
+#   u - unstage all changes
 ```
 
 ## Mounts
