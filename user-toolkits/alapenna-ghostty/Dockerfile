@@ -141,6 +141,11 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================
+# glow (markdown reader)
+# ============================================
+RUN go install github.com/charmbracelet/glow@latest
+
+# ============================================
 # Claude Code (official installer)
 # ============================================
 RUN curl -fsSL https://claude.ai/install.sh | bash

@@ -16,10 +16,11 @@ Use your terminal emulator's native tabs and splits for window management - no n
 | Git operations | lazygit + delta |
 | Quick edits | micro |
 | File navigation | yazi + zoxide |
-| Shell | zsh + oh-my-zsh + spaceship |
+| Shell | zsh + oh-my-zsh + starship |
 | File search | fd + fzf |
 | Content search | ripgrep |
 | File viewing | bat + eza |
+| Markdown viewing | glow |
 
 ## Directory Structure
 
@@ -217,6 +218,19 @@ rg "TODO" --type go
 micro $(fd --type f | fzf)
 ```
 
+### Reading Markdown
+
+```bash
+# Render markdown in terminal
+glow README.md
+
+# With pager for long files
+glow README.md -p
+
+# Browse markdown files in current directory
+glow
+```
+
 ### AI-Assisted Commits
 
 Use `ccm` instead of asking Claude Code to commit. This keeps your conversation context focused on development work rather than polluting it with diffs and commit operations.
@@ -295,5 +309,6 @@ z <partial-path>  # Jump to a learned directory
 - [yazi](https://github.com/sxyazi/yazi) - Terminal file manager
 - [micro](https://micro-editor.github.io/) - Modern terminal editor
 - [spaceship-prompt](https://spaceship-prompt.sh/) - Zsh prompt
+- [glow](https://github.com/charmbracelet/glow) - Terminal markdown reader
 - [Claude Code](https://docs.anthropic.com/claude-code) - AI coding assistant
 - [Ghostty](https://ghostty.org/) - Fast, native terminal emulator
