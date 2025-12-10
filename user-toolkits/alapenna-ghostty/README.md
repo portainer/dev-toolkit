@@ -182,6 +182,7 @@ claude
 | `y` | yazi |
 | `yy` | yazi with cd-on-exit |
 | `m` | micro |
+| `e` | fuzzy find + open in micro |
 | `l` | eza -la --icons |
 | `cat` | bat --paging=never |
 | `ccm` | Claude commit message generator |

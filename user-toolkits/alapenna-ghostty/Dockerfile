@@ -179,6 +179,7 @@ eval "$(zoxide init zsh)"
 alias lg="lazygit"
 alias y="yazi"
 alias m="micro"
+alias e='micro $(fd --type f | fzf)'
 alias cat="bat --paging=never"
 alias l="eza -la --icons"
 
