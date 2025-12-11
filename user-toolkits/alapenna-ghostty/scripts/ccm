@@ -41,9 +41,16 @@ msg=$(echo "$diff" | claude -p "$prompt")
 echo -e "\nSuggested:\n$msg\n"
 read -p "Commit? [Y/n/e/u] " choice
 
+prompt_push() {
+  read -p "Push? [y/N] " push_choice
+  case "${push_choice:-n}" in
+    y|Y) git push ;;
+  esac
+}
+
 case "${choice:-y}" in
   n|N) echo "Aborted (changes remain staged)." ;;
-  e|E) git commit -e -m "$msg" ;;
+  e|E) git commit -e -m "$msg" && prompt_push ;;
   u|U) git reset HEAD >/dev/null; echo "Unstaged all changes." ;;
-  *)   git commit -m "$msg" ;;
+  *)   git commit -m "$msg" && prompt_push ;;
 esac
