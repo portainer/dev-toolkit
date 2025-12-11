@@ -180,18 +180,9 @@ alias lg="lazygit"
 alias y="yazi"
 alias m="micro"
 alias e='micro $(fd --type f | fzf)'
+alias yf='yazi "$(dirname "$(fd --type f | fzf)")"'
 alias cat="bat --paging=never"
 alias l="eza -la --icons"
-
-# Yazi: cd to directory on exit
-function yy() {
-    local tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
-    yazi "$@" --cwd-file="$tmp"
-    if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
-        cd -- "$cwd"
-    fi
-    rm -f -- "$tmp"
-}
 
 # FZF defaults
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'

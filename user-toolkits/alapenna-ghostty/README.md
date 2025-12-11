@@ -180,9 +180,9 @@ claude
 |-------|---------|
 | `lg` | lazygit |
 | `y` | yazi |
-| `yy` | yazi with cd-on-exit |
 | `m` | micro |
 | `e` | fuzzy find + open in micro |
+| `yf` | fuzzy find + open folder in yazi |
 | `l` | eza -la --icons |
 | `cat` | bat --paging=never |
 | `ccm` | Claude commit message generator |
@@ -203,7 +203,7 @@ lg
 # Press 'space' on individual hunks to stage them
 
 # File tree navigation
-yy  # yazi with cd-on-exit
+y   # yazi file manager
 ```
 
 ### Searching
