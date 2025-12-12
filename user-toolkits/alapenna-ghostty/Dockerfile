@@ -180,13 +180,12 @@ eval "$(zoxide init zsh)"
 alias lg="lazygit"
 alias y="yazi"
 alias m="micro"
-alias e='micro $(fd --type f | fzf)'
-alias yf='yazi "$(dirname "$(fd --type f | fzf)")"'
+alias e='f=$(fd --type f --hidden --no-ignore --follow --exclude .git | fzf) && [ -n "$f" ] && micro "$f"'
+alias yf='d=$(fd --type d --hidden --no-ignore --follow --exclude .git | fzf) && [ -n "$d" ] && yazi "$d"'
 alias cat="bat --paging=never"
 alias l="eza -la --icons"
 
 # FZF defaults
-export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
 
 # Initialize starship prompt
