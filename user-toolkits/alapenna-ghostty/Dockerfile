@@ -151,7 +151,7 @@ RUN go install github.com/charmbracelet/glow@latest
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # ============================================
-# Git config for delta
+# Git config
 # ============================================
 RUN git config --global core.pager delta \
     && git config --global interactive.diffFilter "delta --color-only" \
