@@ -87,6 +87,13 @@ RUN ln -sf $(which fdfind) /usr/local/bin/fd \
 # ============================================
 RUN curl https://getmic.ro | bash && mv micro /usr/local/bin/
 
+# Micro config: use OSC 52 for clipboard (works with Ghostty)
+RUN mkdir -p /root/.config/micro && cat > /root/.config/micro/settings.json <<'EOF'
+{
+    "clipboard": "terminal"
+}
+EOF
+
 # ============================================
 # lazygit
 # ============================================
@@ -149,6 +156,42 @@ RUN go install github.com/charmbracelet/glow@latest
 # Claude Code (official installer)
 # ============================================
 RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# Claude Code config (powerline status bar)
+RUN mkdir -p /root/.claude && cat > /root/.claude/claude-powerline.json <<'EOF'
+{
+  "theme": "tokyo-night",
+  "display": {
+    "style": "capsule",
+    "charset": "unicode",
+    "lines": [
+      {
+        "segments": {
+          "directory": {
+            "enabled": true,
+            "style": "fish"
+          },
+          "git": {
+            "enabled": true
+          },
+          "context": {
+            "enabled": true
+          }
+        }
+      }
+    ]
+  }
+}
+EOF
+
+RUN cat > /root/.claude/settings.json <<'EOF'
+{
+  "statusLine": {
+    "type": "command",
+    "command": "npx -y @owloops/claude-powerline@latest --config=/root/.claude/claude-powerline.json"
+  }
+}
+EOF
 
 # ============================================
 # Git config
