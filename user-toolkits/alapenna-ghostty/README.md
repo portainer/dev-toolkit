@@ -186,6 +186,8 @@ claude
 | `l` | eza -la --icons |
 | `cat` | bat --paging=never |
 | `ccm` | Claude commit message generator |
+| `todo` | View .todo.md with glow |
+| `todo -e` | Edit .todo.md with micro |
 
 ## Tips
 
@@ -244,6 +246,18 @@ ccm
 #   n - abort (changes remain staged)
 #   e - edit message before committing
 #   u - unstage all changes
+```
+
+### Local TODOs
+
+Keep per-project TODOs that won't be committed (globally gitignored):
+
+```bash
+# View your todos (rendered markdown)
+todo
+
+# Create or edit todos
+todo -e
 ```
 
 ## Mounts

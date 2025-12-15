@@ -162,6 +162,9 @@ RUN git config --global core.pager delta \
     && git config --global diff.colorMoved default \
     && git config --global push.autoSetupRemote true
 
+# Global gitignore for .todo.md
+RUN mkdir -p /root/.config/git && echo ".todo.md" >> /root/.config/git/ignore
+
 # ============================================
 # Shell integration (append to .zshrc)
 # ============================================
@@ -184,6 +187,17 @@ alias e='f=$(fd --type f --hidden --no-ignore --follow --exclude .git | fzf) && 
 alias yf='d=$(fd --type d --hidden --no-ignore --follow --exclude .git | fzf) && [ -n "$d" ] && yazi "$d"'
 alias cat="bat --paging=never"
 alias l="eza -la --icons"
+
+# Local todo management (git-ignored per project)
+todo() {
+  if [[ "$1" == "-e" ]]; then
+    micro .todo.md
+  elif [[ -f .todo.md ]]; then
+    glow .todo.md
+  else
+    echo "No .todo.md found. Use 'todo -e' to create one."
+  fi
+}
 
 # FZF defaults
 export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
