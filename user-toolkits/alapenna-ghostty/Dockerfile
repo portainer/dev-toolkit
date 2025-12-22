@@ -83,16 +83,16 @@ RUN ln -sf $(which fdfind) /usr/local/bin/fd \
     && ln -sf $(which batcat) /usr/local/bin/bat
 
 # ============================================
-# micro (nano replacement)
+# fresh (terminal editor with LSP)
 # ============================================
-RUN curl https://getmic.ro | bash && mv micro /usr/local/bin/
+RUN FRESH_VERSION=$(curl -s "https://api.github.com/repos/sinelaw/fresh/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') \
+    && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "amd64") \
+    && curl -Lo fresh.deb "https://github.com/sinelaw/fresh/releases/download/v${FRESH_VERSION}/fresh-editor_${FRESH_VERSION}-1_${ARCH}.deb" \
+    && dpkg -i fresh.deb \
+    && rm fresh.deb
 
-# Micro config: use OSC 52 for clipboard (works with Ghostty)
-RUN mkdir -p /root/.config/micro && cat > /root/.config/micro/settings.json <<'EOF'
-{
-    "clipboard": "terminal"
-}
-EOF
+# TypeScript language server (for fresh LSP)
+RUN npm install -g typescript-language-server typescript
 
 # ============================================
 # lazygit
@@ -216,8 +216,8 @@ RUN cat >> /root/.zshrc <<'EOF'
 # Add Claude Code to PATH
 export PATH="$HOME/.local/bin:$PATH"
 
-# Set micro as default editor (used by yazi, git, etc.)
-export EDITOR="micro"
+# Set fresh as default editor (used by yazi, git, etc.)
+export EDITOR="fresh"
 
 # Zoxide
 eval "$(zoxide init zsh)"
@@ -225,8 +225,8 @@ eval "$(zoxide init zsh)"
 # Aliases
 alias lg="lazygit"
 alias y="yazi"
-alias m="micro"
-alias e='f=$(fd --type f --hidden --no-ignore --follow --exclude .git | fzf) && [ -n "$f" ] && micro "$f"'
+alias f="fresh"
+alias e='file=$(fd --type f --hidden --no-ignore --follow --exclude .git | fzf) && [ -n "$file" ] && fresh "$file"'
 alias yf='d=$(fd --type d --hidden --no-ignore --follow --exclude .git | fzf) && [ -n "$d" ] && yazi "$d"'
 alias cat="bat --paging=never"
 alias l="eza -la --icons"
@@ -234,7 +234,7 @@ alias l="eza -la --icons"
 # Local todo management (git-ignored per project)
 todo() {
   if [[ "$1" == "-e" ]]; then
-    micro .todo.md
+    fresh .todo.md
   elif [[ -f .todo.md ]]; then
     glow .todo.md
   else

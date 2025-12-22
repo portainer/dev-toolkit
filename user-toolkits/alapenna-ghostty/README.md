@@ -14,7 +14,7 @@ Use your terminal emulator's native tabs and splits for window management - no n
 |------|------|
 | AI-assisted development | Claude Code |
 | Git operations | lazygit + delta |
-| Quick edits | micro |
+| Quick edits | fresh |
 | File navigation | yazi + zoxide |
 | Shell | zsh + oh-my-zsh + starship |
 | File search | fd + fzf |
@@ -165,14 +165,22 @@ claude
 | `d` | Delete |
 | `r` | Rename |
 
-### micro
+### fresh
 
 | Keys | Action |
 |------|--------|
-| `Ctrl-s` | Save |
-| `Ctrl-q` | Quit |
-| `Ctrl-f` | Find |
-| `Ctrl-z` | Undo |
+| `Ctrl+S` | Save |
+| `Ctrl+Q` | Quit |
+| `Ctrl+F` | Find |
+| `Ctrl+R` | Find and replace |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` | Redo |
+| `Ctrl+P` | Command palette |
+| `Ctrl+O` | Open file |
+| `Ctrl+E` | Toggle file explorer |
+| `Ctrl+D` | Select next occurrence |
+| `Alt+H/V` | Split horizontal/vertical |
+| `Ctrl+Space` | Toggle terminal mode |
 
 ## Aliases
 
@@ -180,14 +188,14 @@ claude
 |-------|---------|
 | `lg` | lazygit |
 | `y` | yazi |
-| `m` | micro |
-| `e` | fuzzy find + open in micro |
+| `f` | fresh |
+| `e` | fuzzy find + open in fresh |
 | `yf` | fuzzy find + open folder in yazi |
 | `l` | eza -la --icons |
 | `cat` | bat --paging=never |
 | `ccm` | Claude commit message generator |
 | `todo` | View .todo.md with glow |
-| `todo -e` | Edit .todo.md with micro |
+| `todo -e` | Edit .todo.md with fresh |
 
 ## Tips
 
@@ -218,7 +226,7 @@ fd "handler" --type f
 rg "TODO" --type go
 
 # Fuzzy find and open
-micro $(fd --type f | fzf)
+fresh $(fd --type f | fzf)
 ```
 
 ### Reading Markdown
@@ -322,7 +330,7 @@ z <partial-path>  # Jump to a learned directory
 - [lazygit](https://github.com/jesseduffield/lazygit) - Terminal UI for git
 - [delta](https://github.com/dandavison/delta) - Better git diffs
 - [yazi](https://github.com/sxyazi/yazi) - Terminal file manager
-- [micro](https://micro-editor.github.io/) - Modern terminal editor
+- [fresh](https://sinelaw.github.io/fresh/) - Modern terminal editor with LSP support
 - [spaceship-prompt](https://spaceship-prompt.sh/) - Zsh prompt
 - [glow](https://github.com/charmbracelet/glow) - Terminal markdown reader
 - [Claude Code](https://docs.anthropic.com/claude-code) - AI coding assistant
