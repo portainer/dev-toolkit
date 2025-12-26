@@ -4,6 +4,9 @@
 
 set -e
 
+# Max diff size in bytes before falling back to manual input
+MAX_DIFF_SIZE=${CCM_MAX_DIFF_SIZE:-300000}
+
 # Check for any changes (staged or unstaged)
 if [[ -z "$(git status --porcelain)" ]]; then
   echo "No changes to commit."
@@ -14,6 +17,7 @@ fi
 git add -A
 
 diff=$(git diff --cached)
+diff_size=${#diff}
 
 prompt='Write a commit message for this diff following this exact format:
 
@@ -36,10 +40,25 @@ Rules:
 - No trailing periods on bullets
 - Output ONLY the message, no markdown fences or extra text'
 
-msg=$(echo "$diff" | claude -p "$prompt")
-
-echo -e "\nSuggested:\n$msg\n"
-read -p "Commit? [Y/n/e/u] " choice
+# Check if diff exceeds size limit
+if [[ $diff_size -gt $MAX_DIFF_SIZE ]]; then
+  echo "Diff too large for Claude ($(numfmt --to=iec $diff_size) > $(numfmt --to=iec $MAX_DIFF_SIZE))"
+  echo ""
+  git diff --cached --stat
+  echo ""
+  read -p "Enter commit message (or 'q' to abort): " manual_msg
+  if [[ "$manual_msg" == "q" || -z "$manual_msg" ]]; then
+    echo "Aborted (changes remain staged)."
+    exit 0
+  fi
+  msg="$manual_msg"
+  echo ""
+  read -p "Commit? [Y/n/e/u] " choice
+else
+  msg=$(echo "$diff" | claude -p "$prompt")
+  echo -e "\nSuggested:\n$msg\n"
+  read -p "Commit? [Y/n/e/u] " choice
+fi
 
 prompt_push() {
   read -p "Push? [y/N] " push_choice

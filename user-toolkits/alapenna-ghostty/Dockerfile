@@ -94,6 +94,9 @@ RUN FRESH_VERSION=$(curl -s "https://api.github.com/repos/sinelaw/fresh/releases
 # TypeScript language server (for fresh LSP)
 RUN npm install -g typescript-language-server typescript
 
+# Fresh config: 2-space indentation (modifies default config)
+RUN sed -i 's/"tab_size": 4/"tab_size": 2/' /root/.config/fresh/config.json
+
 # ============================================
 # lazygit
 # ============================================
