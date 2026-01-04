@@ -192,6 +192,8 @@ claude
 | `e` | fuzzy find + open in fresh |
 | `yf` | fuzzy find + open folder in yazi |
 | `l` | eza -la --icons |
+| `br` | fzf with bat preview |
+| `dir` / `dir N` | eza tree (level 1 default, or N) |
 | `cat` | bat --paging=never |
 | `ccm` | Claude commit message generator |
 | `todo` | View .todo.md with glow |

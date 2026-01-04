@@ -233,6 +233,8 @@ alias e='file=$(fd --type f --hidden --no-ignore --follow --exclude .git | fzf) 
 alias yf='d=$(fd --type d --hidden --no-ignore --follow --exclude .git | fzf) && [ -n "$d" ] && yazi "$d"'
 alias cat="bat --paging=never"
 alias l="eza -la --icons"
+alias br='fzf --preview "bat --color=always {}"'
+dir() { eza --tree --level="${1:-1}" --icons; }
 
 # Local todo management (git-ignored per project)
 todo() {
