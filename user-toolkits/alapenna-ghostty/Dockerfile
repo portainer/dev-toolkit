@@ -236,6 +236,30 @@ alias l="eza -la --icons"
 alias br='fzf --preview "bat --color=always {}"'
 dir() { eza --tree --level="${1:-1}" --icons; }
 
+# Help command for aliases
+ha() {
+  echo "
+  Navigation & Files
+    l           List files (eza -la --icons)
+    dir [N]     Tree view, depth N (default: 1)
+    br          Browse files with preview (fzf + bat)
+    e           Fuzzy find + open in editor
+    y           Yazi file manager
+    yy          Yazi + cd to dir on exit
+    yf          Fuzzy find folder + open in yazi
+
+  Tools
+    lg          Lazygit
+    f           Fresh editor
+    cat         Bat (syntax highlighting)
+
+  Productivity
+    todo        View .todo.md
+    todo -e     Edit .todo.md
+    ccm         Claude commit message
+"
+}
+
 # Local todo management (git-ignored per project)
 todo() {
   if [[ "$1" == "-e" ]]; then

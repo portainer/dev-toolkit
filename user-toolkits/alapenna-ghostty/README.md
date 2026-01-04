@@ -195,6 +195,7 @@ claude
 | `br` | fzf with bat preview |
 | `dir` / `dir N` | eza tree (level 1 default, or N) |
 | `cat` | bat --paging=never |
+| `ha` | Show all aliases with descriptions |
 | `ccm` | Claude commit message generator |
 | `todo` | View .todo.md with glow |
 | `todo -e` | Edit .todo.md with fresh |
