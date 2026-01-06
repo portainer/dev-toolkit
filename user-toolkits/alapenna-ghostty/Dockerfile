@@ -284,6 +284,9 @@ EOF
 COPY scripts/ccm /usr/local/bin/ccm
 RUN chmod +x /usr/local/bin/ccm
 
+COPY scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # ============================================
 # Set zsh as default shell
 # ============================================
@@ -291,3 +294,5 @@ RUN chsh -s $(which zsh)
 
 WORKDIR /workspace
 SHELL ["/bin/zsh", "-c"]
+
+ENTRYPOINT ["/entrypoint.sh"]

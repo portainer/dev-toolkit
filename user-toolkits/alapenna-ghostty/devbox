@@ -41,8 +41,7 @@ cmd_enter() {
       -v /var/run/docker.sock:/var/run/docker.sock \
       -v "$VOLUME":/workspace \
       -w /workspace \
-      "$IMAGE" \
-      sleep infinity
+      "$IMAGE"
   fi
 
   # Start container if stopped

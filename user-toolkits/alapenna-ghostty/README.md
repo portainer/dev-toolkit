@@ -30,7 +30,8 @@ user-toolkits/alapenna-ghostty/
 ├── devbox            # Container lifecycle script for host machine
 ├── devcontainer.json # Devcontainer configuration (alternative to devbox)
 ├── scripts/
-│   └── ccm           # Claude commit message generator
+│   ├── ccm           # Claude commit message generator
+│   └── entrypoint.sh # Container startup script (cleanup + idle)
 └── README.md         # This file
 ```
 
@@ -90,6 +91,7 @@ db                        # Or: devbox
 # 2. Run db (or devbox)
 #    -> Container restarts automatically
 #    -> /workspace volume persists all your code
+#    -> /tmp cleanup runs automatically (files older than 8 hours)
 ```
 
 ### devbox Commands
