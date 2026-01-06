@@ -12,6 +12,8 @@ Configure your workspace to use the `devcontainer.json` file in this repository.
 
 Open your project in your IDE using the <u>Open Folder in Container</u> option and start coding!
 
+For AI-assisted development, check out the [alapenna-ghostty toolkit](user-toolkits/alapenna-ghostty/) - a terminal-native setup with Claude Code, lazygit, and modern CLI tools.
+
 Have a look at the rest of the documentation below for more configuration/customization options.
 
 # About
