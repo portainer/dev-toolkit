@@ -61,9 +61,10 @@ else
 fi
 
 prompt_push() {
-  read -p "Push? [y/N] " push_choice
-  case "${push_choice:-n}" in
-    y|Y) git push ;;
+  read -p "Push? [Y/n] " push_choice
+  case "${push_choice:-y}" in
+    n|N) echo "Skipped push." ;;
+    *) git push ;;
   esac
 }
 
