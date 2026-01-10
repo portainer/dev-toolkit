@@ -7,21 +7,16 @@ ENV TERM=xterm-256color
 ARG TARGETARCH
 
 # ============================================
-# zsh + oh-my-zsh + starship prompt
+# zsh + plugins (no oh-my-zsh) + starship prompt
 # ============================================
 RUN apt-get update && apt-get install -y zsh wget curl git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install oh-my-zsh
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-
-# Install zsh plugins
-RUN git clone https://github.com/zsh-users/zsh-autosuggestions /root/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
-    && git clone https://github.com/zsh-users/zsh-syntax-highlighting /root/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
-
-# Configure zsh plugins (disable theme, starship will handle prompt)
-RUN sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME=""/' /root/.zshrc \
-    && sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' /root/.zshrc
+# Install zsh plugins directly (lean, no framework overhead)
+RUN mkdir -p /root/.zsh \
+    && git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions /root/.zsh/zsh-autosuggestions \
+    && git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting /root/.zsh/zsh-syntax-highlighting \
+    && git clone --depth=1 https://github.com/zsh-users/zsh-history-substring-search /root/.zsh/zsh-history-substring-search
 
 # Install starship prompt
 RUN curl -sS https://starship.rs/install.sh | sh -s -- -y
@@ -212,20 +207,61 @@ RUN git config --global core.pager delta \
 RUN mkdir -p /root/.config/git && echo ".todo.md" >> /root/.config/git/ignore
 
 # ============================================
-# Shell integration (append to .zshrc)
+# Shell configuration (.zshrc from scratch)
 # ============================================
-RUN cat >> /root/.zshrc <<'EOF'
+RUN cat > /root/.zshrc <<'EOF'
+# ----------------------------------------
+# Zsh plugins (no oh-my-zsh framework)
+# ----------------------------------------
+source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source ~/.zsh/zsh-history-substring-search/zsh-history-substring-search.zsh
 
-# Add Claude Code to PATH
+# ----------------------------------------
+# History configuration
+# ----------------------------------------
+HISTFILE=~/.zsh_history
+HISTSIZE=50000
+SAVEHIST=50000
+setopt HIST_IGNORE_ALL_DUPS  # Remove older duplicate entries
+setopt HIST_FIND_NO_DUPS     # Don't show duplicates when searching
+setopt SHARE_HISTORY         # Share history across terminals
+setopt INC_APPEND_HISTORY    # Add commands immediately
+
+# ----------------------------------------
+# Shell options
+# ----------------------------------------
+setopt AUTO_CD               # Type directory name to cd into it
+setopt AUTO_PUSHD            # cd pushes to directory stack
+setopt PUSHD_IGNORE_DUPS     # Don't push duplicates
+setopt CORRECT               # Spelling correction for commands
+
+# ----------------------------------------
+# Key bindings
+# ----------------------------------------
+# Up/down arrow searches history with current prefix
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+
+# fzf keybindings (Ctrl+R history, Ctrl+T files, Alt+C cd)
+source /usr/share/doc/fzf/examples/key-bindings.zsh
+
+# ----------------------------------------
+# Environment
+# ----------------------------------------
 export PATH="$HOME/.local/bin:$PATH"
-
-# Set fresh as default editor (used by yazi, git, etc.)
 export EDITOR="fresh"
+export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
 
-# Zoxide
+# ----------------------------------------
+# Tool integrations
+# ----------------------------------------
 eval "$(zoxide init zsh)"
+eval "$(starship init zsh)"
 
+# ----------------------------------------
 # Aliases
+# ----------------------------------------
 alias lg="lazygit"
 alias y="yazi"
 alias f="fresh"
@@ -234,9 +270,13 @@ alias yf='d=$(fd --type d --hidden --no-ignore --follow --exclude .git | fzf) &&
 alias cat="bat --paging=never"
 alias l="eza -la --icons"
 alias br='fzf --preview "bat --color=always {}"'
+alias gp="git push"
+
 dir() { eza --tree --level="${1:-1}" --icons; }
 
+# ----------------------------------------
 # Help command for aliases
+# ----------------------------------------
 ha() {
   echo "
   Navigation & Files
@@ -245,13 +285,18 @@ ha() {
     br          Browse files with preview (fzf + bat)
     e           Fuzzy find + open in editor
     y           Yazi file manager
-    yy          Yazi + cd to dir on exit
     yf          Fuzzy find folder + open in yazi
 
   Tools
     lg          Lazygit
     f           Fresh editor
     cat         Bat (syntax highlighting)
+
+  Keybindings
+    Ctrl+R      Fuzzy search command history
+    Ctrl+T      Fuzzy find file, insert path
+    Alt+C       Fuzzy find directory and cd
+    Up/Down     Search history with current prefix
 
   Productivity
     todo        View .todo.md
@@ -260,7 +305,9 @@ ha() {
 "
 }
 
-# Local todo management (git-ignored per project)
+# ----------------------------------------
+# Local todo management (git-ignored)
+# ----------------------------------------
 todo() {
   if [[ "$1" == "-e" ]]; then
     fresh .todo.md
@@ -270,12 +317,6 @@ todo() {
     echo "No .todo.md found. Use 'todo -e' to create one."
   fi
 }
-
-# FZF defaults
-export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
-
-# Initialize starship prompt
-eval "$(starship init zsh)"
 EOF
 
 # ============================================

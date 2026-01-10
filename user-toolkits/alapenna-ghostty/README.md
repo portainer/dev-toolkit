@@ -16,7 +16,7 @@ Use your terminal emulator's native tabs and splits for window management - no n
 | Git operations | lazygit + delta |
 | Quick edits | fresh |
 | File navigation | yazi + zoxide |
-| Shell | zsh + oh-my-zsh + starship |
+| Shell | zsh + starship |
 | File search | fd + fzf |
 | Content search | ripgrep |
 | File viewing | bat + eza |
@@ -184,6 +184,15 @@ claude
 | `Alt+H/V` | Split horizontal/vertical |
 | `Ctrl+Space` | Toggle terminal mode |
 
+## Shell Keybindings
+
+| Keys | Action |
+|------|--------|
+| `Ctrl+R` | Fuzzy search command history (fzf) |
+| `Ctrl+T` | Fuzzy find file, insert path |
+| `Alt+C` | Fuzzy find directory and cd |
+| `Up/Down` | Search history with current prefix |
+
 ## Aliases
 
 | Alias | Command |
@@ -197,6 +206,7 @@ claude
 | `br` | fzf with bat preview |
 | `dir` / `dir N` | eza tree (level 1 default, or N) |
 | `cat` | bat --paging=never |
+| `gp` | git push |
 | `ha` | Show all aliases with descriptions |
 | `ccm` | Claude commit message generator |
 | `todo` | View .todo.md with glow |
@@ -336,7 +346,10 @@ z <partial-path>  # Jump to a learned directory
 - [delta](https://github.com/dandavison/delta) - Better git diffs
 - [yazi](https://github.com/sxyazi/yazi) - Terminal file manager
 - [fresh](https://sinelaw.github.io/fresh/) - Modern terminal editor with LSP support
-- [spaceship-prompt](https://spaceship-prompt.sh/) - Zsh prompt
+- [starship](https://starship.rs/) - Cross-shell prompt
+- [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions) - Fish-like suggestions
+- [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting) - Command highlighting
+- [zsh-history-substring-search](https://github.com/zsh-users/zsh-history-substring-search) - History search with prefix
 - [glow](https://github.com/charmbracelet/glow) - Terminal markdown reader
 - [Claude Code](https://docs.anthropic.com/claude-code) - AI coding assistant
 - [Ghostty](https://ghostty.org/) - Fast, native terminal emulator
