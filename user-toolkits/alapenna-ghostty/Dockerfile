@@ -7,19 +7,34 @@ ENV TERM=xterm-256color
 ARG TARGETARCH
 
 # ============================================
-# zsh + plugins (no oh-my-zsh) + starship prompt
+# System packages (combined, with cleanup)
 # ============================================
-RUN apt-get update && apt-get install -y zsh wget curl git \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    zsh \
+    wget \
+    curl \
+    git \
+    file \
+    fzf \
+    ripgrep \
+    fd-find \
+    bat \
+    jq \
+    lsof \
+    unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf $(which fdfind) /usr/local/bin/fd \
+    && ln -sf $(which batcat) /usr/local/bin/bat
 
-# Install zsh plugins directly (lean, no framework overhead)
+# ============================================
+# zsh plugins (no oh-my-zsh) + starship prompt
+# ============================================
 RUN mkdir -p /root/.zsh \
     && git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions /root/.zsh/zsh-autosuggestions \
     && git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting /root/.zsh/zsh-syntax-highlighting \
-    && git clone --depth=1 https://github.com/zsh-users/zsh-history-substring-search /root/.zsh/zsh-history-substring-search
-
-# Install starship prompt
-RUN curl -sS https://starship.rs/install.sh | sh -s -- -y
+    && git clone --depth=1 https://github.com/zsh-users/zsh-history-substring-search /root/.zsh/zsh-history-substring-search \
+    && rm -rf /root/.zsh/*/.git \
+    && curl -sS https://starship.rs/install.sh | sh -s -- -y
 
 # Starship config (two-line minimal)
 RUN mkdir -p /root/.config && cat > /root/.config/starship.toml <<'EOF'
@@ -60,40 +75,25 @@ error_symbol = "[>](red bold)"
 EOF
 
 # ============================================
-# Core CLI tools
-# ============================================
-RUN apt-get update && apt-get install -y \
-    file \
-    fzf \
-    ripgrep \
-    fd-find \
-    bat \
-    jq \
-    lsof \
-    unzip \
-    && rm -rf /var/lib/apt/lists/*
-
-# Symlinks for Ubuntu naming quirks
-RUN ln -sf $(which fdfind) /usr/local/bin/fd \
-    && ln -sf $(which batcat) /usr/local/bin/bat
-
-# ============================================
 # fresh (terminal editor with LSP)
 # ============================================
 RUN FRESH_VERSION=$(curl -s "https://api.github.com/repos/sinelaw/fresh/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') \
     && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "amd64") \
     && curl -Lo fresh.deb "https://github.com/sinelaw/fresh/releases/download/v${FRESH_VERSION}/fresh-editor_${FRESH_VERSION}-1_${ARCH}.deb" \
     && dpkg -i fresh.deb \
-    && rm fresh.deb
-
-# TypeScript language server (for fresh LSP)
-RUN npm install -g typescript-language-server typescript
-
-# Fresh config: 2-space indentation (modifies default config)
-RUN sed -i 's/"tab_size": 4/"tab_size": 2/' /root/.config/fresh/config.json
+    && rm fresh.deb \
+    && npm install -g typescript-language-server typescript \
+    && npm cache clean --force \
+    && mkdir -p /root/.config/fresh && cat > /root/.config/fresh/config.json <<'EOF'
+{
+  "editor": {
+    "tab_size": 2
+  }
+}
+EOF
 
 # ============================================
-# lazygit
+# CLI tools (lazygit, delta, yazi, zoxide, eza)
 # ============================================
 RUN LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') \
     && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "x86_64") \
@@ -102,18 +102,12 @@ RUN LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygi
     && install lazygit /usr/local/bin \
     && rm lazygit.tar.gz lazygit
 
-# ============================================
-# delta (better git diffs)
-# ============================================
 RUN DELTA_VERSION=$(curl -s "https://api.github.com/repos/dandavison/delta/releases/latest" | grep -Po '"tag_name": "\K[^"]*') \
     && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "amd64") \
     && curl -Lo delta.deb "https://github.com/dandavison/delta/releases/latest/download/git-delta_${DELTA_VERSION}_${ARCH}.deb" \
     && dpkg -i delta.deb \
     && rm delta.deb
 
-# ============================================
-# yazi (file manager)
-# ============================================
 RUN ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "aarch64" || echo "x86_64") \
     && curl -Lo yazi.zip "https://github.com/sxyazi/yazi/releases/latest/download/yazi-${ARCH}-unknown-linux-gnu.zip" \
     && unzip yazi.zip \
@@ -121,14 +115,8 @@ RUN ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "aarch64" || echo "x86_64") \
     && mv yazi-${ARCH}-unknown-linux-gnu/ya /usr/local/bin/ \
     && rm -rf yazi.zip yazi-*-unknown-linux-gnu
 
-# ============================================
-# zoxide (smart cd)
-# ============================================
 RUN curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
 
-# ============================================
-# eza (modern ls)
-# ============================================
 RUN ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "aarch64" || echo "x86_64") \
     && curl -Lo eza.tar.gz "https://github.com/eza-community/eza/releases/latest/download/eza_${ARCH}-unknown-linux-gnu.tar.gz" \
     && tar xf eza.tar.gz \
@@ -142,42 +130,53 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
     && apt-get update \
-    && apt-get install -y gh \
+    && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================
 # glow (markdown reader)
 # ============================================
-RUN go install github.com/charmbracelet/glow@latest
+RUN go install github.com/charmbracelet/glow@latest \
+    && go clean -cache -modcache
 
 # ============================================
-# Claude Code (official installer)
+# Claude Code + Plannotator CLI
 # ============================================
-RUN curl -fsSL https://claude.ai/install.sh | bash
+RUN curl -fsSL https://claude.ai/install.sh | bash \
+    && curl -fsSL https://plannotator.ai/install.sh | bash
 
-# Claude Code config (powerline status bar)
-RUN mkdir -p /root/.claude && cat > /root/.claude/claude-powerline.json <<'EOF'
+# ============================================
+# Claude Code plugins (via CLI)
+# ============================================
+ENV PATH="/root/.local/bin:${PATH}"
+RUN claude plugin marketplace add jarrodwatts/claude-hud \
+    && claude plugin marketplace add backnotprop/plannotator \
+    && claude plugin marketplace add anthropics/claude-plugins-official \
+    && claude plugin install claude-hud \
+    && claude plugin install plannotator@plannotator \
+    && claude plugin install typescript-lsp@claude-plugins-official \
+    && claude plugin install gopls-lsp@claude-plugins-official
+
+# Claude Code config files
+RUN mkdir -p /root/.claude/plugins/claude-hud \
+    && cat > /root/.claude/plugins/claude-hud/config.json <<'EOF'
 {
-  "theme": "tokyo-night",
+  "layout": "default",
   "display": {
-    "style": "capsule",
-    "charset": "unicode",
-    "lines": [
-      {
-        "segments": {
-          "directory": {
-            "enabled": true,
-            "style": "fish"
-          },
-          "git": {
-            "enabled": true
-          },
-          "context": {
-            "enabled": true
-          }
-        }
-      }
-    ]
+    "showModel": true,
+    "showContextBar": true,
+    "showTools": false,
+    "showAgents": true,
+    "showTodos": true,
+    "showConfigCounts": false,
+    "showTokenBreakdown": true,
+    "showUsage": true,
+    "showDuration": false
+  },
+  "gitStatus": {
+    "enabled": true,
+    "showDirty": true,
+    "showAheadBehind": true
   }
 }
 EOF
@@ -186,8 +185,13 @@ RUN cat > /root/.claude/settings.json <<'EOF'
 {
   "statusLine": {
     "type": "command",
-    "command": "npx -y @owloops/claude-powerline@latest --config=/root/.claude/claude-powerline.json"
-  }
+    "command": "node \"$(ls -td ~/.claude/plugins/cache/claude-hud/claude-hud/*/ 2>/dev/null | head -1)dist/index.js\""
+  },
+  "enabledPlugins": {
+    "claude-hud@claude-hud": true,
+    "plannotator@plannotator": true
+  },
+  "alwaysThinkingEnabled": true
 }
 EOF
 
@@ -201,13 +205,11 @@ RUN git config --global core.pager delta \
     && git config --global delta.line-numbers true \
     && git config --global merge.conflictstyle diff3 \
     && git config --global diff.colorMoved default \
-    && git config --global push.autoSetupRemote true
-
-# Global gitignore for .todo.md
-RUN mkdir -p /root/.config/git && echo ".todo.md" >> /root/.config/git/ignore
+    && git config --global push.autoSetupRemote true \
+    && mkdir -p /root/.config/git && echo ".todo.md" >> /root/.config/git/ignore
 
 # ============================================
-# Shell configuration (.zshrc from scratch)
+# Shell configuration (.zshrc)
 # ============================================
 RUN cat > /root/.zshrc <<'EOF'
 # ----------------------------------------
@@ -252,6 +254,10 @@ source /usr/share/doc/fzf/examples/key-bindings.zsh
 export PATH="$HOME/.local/bin:$PATH"
 export EDITOR="fresh"
 export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
+
+# Plannotator (devcontainer mode on port 8999)
+export PLANNOTATOR_REMOTE=1
+export PLANNOTATOR_PORT=8999
 
 # ----------------------------------------
 # Tool integrations
@@ -322,11 +328,9 @@ EOF
 # ============================================
 # Custom scripts
 # ============================================
-COPY scripts/ccm /usr/local/bin/ccm
-RUN chmod +x /usr/local/bin/ccm
-
-COPY scripts/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY user-toolkits/alapenna-ghostty/scripts/ccm /usr/local/bin/ccm
+COPY user-toolkits/alapenna-ghostty/scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /usr/local/bin/ccm /entrypoint.sh
 
 # ============================================
 # Set zsh as default shell

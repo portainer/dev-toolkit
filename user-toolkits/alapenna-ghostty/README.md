@@ -114,22 +114,31 @@ If you prefer using an IDE with devcontainer support:
 
 After starting the container for the first time:
 
+### Git
+
 ```bash
-# Configure git
 git config --global user.email <email>
 git config --global user.name <name>
 git config --global commit.gpgsign true
 git config --global user.signingkey <key_id>
 git config --global url.ssh://git@github.com/.insteadOf https://github.com/
+```
 
-# Login to GitHub CLI
+### GitHub CLI
+
+```bash
 gh auth login
 # Follow the prompts to authenticate
+```
 
-# Login to Claude Code
+### Claude Code
+
+```bash
 claude
 # Follow the authentication prompts
 ```
+
+Plugins are pre-installed and configured. Access plannotator UI at `http://localhost:8999` when in plan mode.
 
 ## Keyboard Shortcuts
 
@@ -352,4 +361,6 @@ z <partial-path>  # Jump to a learned directory
 - [zsh-history-substring-search](https://github.com/zsh-users/zsh-history-substring-search) - History search with prefix
 - [glow](https://github.com/charmbracelet/glow) - Terminal markdown reader
 - [Claude Code](https://docs.anthropic.com/claude-code) - AI coding assistant
+- [claude-hud](https://github.com/jarrodwatts/claude-hud) - Real-time statusline HUD for Claude Code
+- [plannotator](https://github.com/backnotprop/plannotator) - Visual plan mode annotations
 - [Ghostty](https://ghostty.org/) - Fast, native terminal emulator
