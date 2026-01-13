@@ -16,7 +16,35 @@
 set -e
 
 NAME="devbox-nix"
-CONFIG_DIR="$(dirname "$0")"
+
+# Find configuration.nix - check multiple locations
+find_config() {
+  # 1. Environment variable
+  if [[ -n "$DEVBOX_NIX_CONFIG" && -f "$DEVBOX_NIX_CONFIG" ]]; then
+    echo "$DEVBOX_NIX_CONFIG"
+    return
+  fi
+  # 2. User config directory
+  if [[ -f "$HOME/.config/devbox-nix/configuration.nix" ]]; then
+    echo "$HOME/.config/devbox-nix/configuration.nix"
+    return
+  fi
+  # 3. Script's directory (works when not installed to PATH)
+  local script_dir="$(dirname "$0")"
+  if [[ -f "$script_dir/configuration.nix" ]]; then
+    echo "$script_dir/configuration.nix"
+    return
+  fi
+  # 4. Current directory
+  if [[ -f "./configuration.nix" ]]; then
+    echo "./configuration.nix"
+    return
+  fi
+  # Not found
+  echo ""
+}
+
+CONFIG_FILE="$(find_config)"
 
 cmd_enter() {
   # Check if OrbStack is running
@@ -34,21 +62,30 @@ cmd_enter() {
     echo "Waiting for VM to start..."
     sleep 3
 
-    # Copy configuration
-    if [[ -f "$CONFIG_DIR/configuration.nix" ]]; then
-      echo "Copying NixOS configuration..."
-      orb push "$NAME" "$CONFIG_DIR/configuration.nix" /tmp/configuration.nix
+    # Copy and apply configuration
+    if [[ -n "$CONFIG_FILE" ]]; then
+      echo "Copying NixOS configuration from $CONFIG_FILE..."
+      orb push "$NAME" "$CONFIG_FILE" /tmp/configuration.nix
       orb run "$NAME" sudo cp /tmp/configuration.nix /etc/nixos/configuration.nix
 
       echo "Applying initial configuration (this may take a few minutes)..."
       orb run "$NAME" sudo nixos-rebuild switch
-    fi
 
-    echo ""
-    echo "VM created. Run these commands inside to complete setup:"
-    echo "  1. gh auth login"
-    echo "  2. Install Claude Code: curl -fsSL https://claude.ai/install.sh | bash"
-    echo ""
+      echo ""
+      echo "VM created. Run these commands inside to complete setup:"
+      echo "  1. gh auth login"
+      echo "  2. claude (authenticate)"
+      echo ""
+    else
+      echo ""
+      echo "WARNING: configuration.nix not found. VM created with default NixOS config."
+      echo "To apply your config, either:"
+      echo "  - Set DEVBOX_NIX_CONFIG=/path/to/configuration.nix"
+      echo "  - Copy config to ~/.config/devbox-nix/configuration.nix"
+      echo "  - Run devbox-nix from the directory containing configuration.nix"
+      echo "Then run: devbox-nix rebuild"
+      echo ""
+    fi
   fi
 
   # Start VM if stopped
@@ -59,7 +96,7 @@ cmd_enter() {
   fi
 
   # Enter the VM
-  exec orb shell "$NAME"
+  exec orb -m "$NAME"
 }
 
 cmd_stop() {
@@ -73,7 +110,8 @@ cmd_stop() {
 
 cmd_destroy() {
   if orb list 2>/dev/null | grep -q "^$NAME"; then
-    read -p "This will delete the VM and all data. Continue? [y/N] " confirm
+    echo -n "This will delete the VM and all data. Continue? [y/N] "
+    read confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
       echo "Removing VM..."
       orb delete "$NAME" --force
@@ -113,10 +151,12 @@ cmd_rebuild() {
   fi
 
   # Copy latest configuration
-  if [[ -f "$CONFIG_DIR/configuration.nix" ]]; then
-    echo "Copying updated configuration..."
-    orb push "$NAME" "$CONFIG_DIR/configuration.nix" /tmp/configuration.nix
+  if [[ -n "$CONFIG_FILE" ]]; then
+    echo "Copying updated configuration from $CONFIG_FILE..."
+    orb push "$NAME" "$CONFIG_FILE" /tmp/configuration.nix
     orb run "$NAME" sudo cp /tmp/configuration.nix /etc/nixos/configuration.nix
+  else
+    echo "WARNING: configuration.nix not found. Rebuilding with existing config in VM."
   fi
 
   echo "Rebuilding NixOS..."
