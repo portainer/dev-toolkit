@@ -1,0 +1,180 @@
+#!/usr/bin/env zsh
+# devbox-nix - NixOS VM lifecycle manager for alapenna-nixos toolkit
+#
+# Install:
+#   cp devbox-nix ~/.local/bin/
+#   chmod +x ~/.local/bin/devbox-nix
+#
+# Usage:
+#   devbox-nix          # Enter the VM (creates if needed)
+#   devbox-nix stop     # Stop the VM
+#   devbox-nix destroy  # Remove VM completely
+#   devbox-nix status   # Show VM status
+#   devbox-nix rebuild  # Rebuild NixOS configuration
+#   devbox-nix rollback # Rollback to previous generation
+
+set -e
+
+NAME="devbox-nix"
+CONFIG_DIR="$(dirname "$0")"
+
+cmd_enter() {
+  # Check if OrbStack is running
+  if ! command -v orb &>/dev/null; then
+    echo "OrbStack CLI not found. Install OrbStack first."
+    exit 1
+  fi
+
+  # Create VM if it doesn't exist
+  if ! orb list 2>/dev/null | grep -q "^$NAME"; then
+    echo "Creating NixOS VM..."
+    orb create nixos "$NAME"
+
+    # Wait for VM to be ready
+    echo "Waiting for VM to start..."
+    sleep 3
+
+    # Copy configuration
+    if [[ -f "$CONFIG_DIR/configuration.nix" ]]; then
+      echo "Copying NixOS configuration..."
+      orb push "$NAME" "$CONFIG_DIR/configuration.nix" /tmp/configuration.nix
+      orb run "$NAME" sudo cp /tmp/configuration.nix /etc/nixos/configuration.nix
+
+      echo "Applying initial configuration (this may take a few minutes)..."
+      orb run "$NAME" sudo nixos-rebuild switch
+    fi
+
+    echo ""
+    echo "VM created. Run these commands inside to complete setup:"
+    echo "  1. gh auth login"
+    echo "  2. Install Claude Code: curl -fsSL https://claude.ai/install.sh | bash"
+    echo ""
+  fi
+
+  # Start VM if stopped
+  if ! orb list 2>/dev/null | grep "$NAME" | grep -q "running"; then
+    echo "Starting VM..."
+    orb start "$NAME"
+    sleep 2
+  fi
+
+  # Enter the VM
+  exec orb shell "$NAME"
+}
+
+cmd_stop() {
+  if orb list 2>/dev/null | grep "$NAME" | grep -q "running"; then
+    echo "Stopping VM..."
+    orb stop "$NAME"
+  else
+    echo "VM not running."
+  fi
+}
+
+cmd_destroy() {
+  if orb list 2>/dev/null | grep -q "^$NAME"; then
+    read -p "This will delete the VM and all data. Continue? [y/N] " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+      echo "Removing VM..."
+      orb delete "$NAME" --force
+      echo "VM removed."
+    else
+      echo "Cancelled."
+    fi
+  else
+    echo "VM does not exist."
+  fi
+}
+
+cmd_status() {
+  if ! command -v orb &>/dev/null; then
+    echo "OrbStack: not installed"
+    return
+  fi
+
+  if orb list 2>/dev/null | grep "$NAME" | grep -q "running"; then
+    echo "VM: running"
+
+    # Show NixOS generation info
+    echo ""
+    echo "NixOS generations:"
+    orb run "$NAME" sudo nix-env --list-generations -p /nix/var/nix/profiles/system 2>/dev/null | tail -5
+  elif orb list 2>/dev/null | grep -q "^$NAME"; then
+    echo "VM: stopped"
+  else
+    echo "VM: not created"
+  fi
+}
+
+cmd_rebuild() {
+  if ! orb list 2>/dev/null | grep "$NAME" | grep -q "running"; then
+    echo "VM not running. Start it first with: devbox-nix"
+    exit 1
+  fi
+
+  # Copy latest configuration
+  if [[ -f "$CONFIG_DIR/configuration.nix" ]]; then
+    echo "Copying updated configuration..."
+    orb push "$NAME" "$CONFIG_DIR/configuration.nix" /tmp/configuration.nix
+    orb run "$NAME" sudo cp /tmp/configuration.nix /etc/nixos/configuration.nix
+  fi
+
+  echo "Rebuilding NixOS..."
+  orb run "$NAME" sudo nixos-rebuild switch
+  echo "Done. New generation created."
+}
+
+cmd_rollback() {
+  if ! orb list 2>/dev/null | grep "$NAME" | grep -q "running"; then
+    echo "VM not running. Start it first with: devbox-nix"
+    exit 1
+  fi
+
+  echo "Rolling back to previous generation..."
+  orb run "$NAME" sudo nixos-rebuild switch --rollback
+  echo "Done. Rolled back to previous generation."
+}
+
+cmd_help() {
+  echo "devbox-nix - NixOS VM lifecycle manager"
+  echo ""
+  echo "Usage: devbox-nix [command]"
+  echo ""
+  echo "Commands:"
+  echo "  (none)    Enter the VM (creates/starts if needed)"
+  echo "  stop      Stop the VM"
+  echo "  destroy   Remove VM completely"
+  echo "  status    Show VM status and generations"
+  echo "  rebuild   Apply configuration.nix changes"
+  echo "  rollback  Rollback to previous NixOS generation"
+  echo "  help      Show this help"
+}
+
+case "${1:-}" in
+  ""|enter)
+    cmd_enter
+    ;;
+  stop)
+    cmd_stop
+    ;;
+  destroy)
+    cmd_destroy
+    ;;
+  status)
+    cmd_status
+    ;;
+  rebuild)
+    cmd_rebuild
+    ;;
+  rollback)
+    cmd_rollback
+    ;;
+  help|--help|-h)
+    cmd_help
+    ;;
+  *)
+    echo "Unknown command: $1"
+    cmd_help
+    exit 1
+    ;;
+esac
