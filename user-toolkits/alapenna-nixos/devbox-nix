@@ -65,11 +65,11 @@ cmd_enter() {
     # Copy and apply configuration
     if [[ -n "$CONFIG_FILE" ]]; then
       echo "Copying NixOS configuration from $CONFIG_FILE..."
-      orb push "$NAME" "$CONFIG_FILE" /tmp/configuration.nix
-      orb run "$NAME" sudo cp /tmp/configuration.nix /etc/nixos/configuration.nix
+      orb push -m "$NAME" "$CONFIG_FILE" /tmp/configuration.nix
+      orb run -m "$NAME" sudo cp /tmp/configuration.nix /etc/nixos/configuration.nix
 
       echo "Applying initial configuration (this may take a few minutes)..."
-      orb run "$NAME" sudo nixos-rebuild switch
+      orb run -m "$NAME" sudo nixos-rebuild switch
 
       echo ""
       echo "VM created. Run these commands inside to complete setup:"
@@ -136,7 +136,7 @@ cmd_status() {
     # Show NixOS generation info
     echo ""
     echo "NixOS generations:"
-    orb run "$NAME" sudo nix-env --list-generations -p /nix/var/nix/profiles/system 2>/dev/null | tail -5
+    orb run -m "$NAME" sudo nix-env --list-generations -p /nix/var/nix/profiles/system 2>/dev/null | tail -5
   elif orb list 2>/dev/null | grep -q "^$NAME"; then
     echo "VM: stopped"
   else
@@ -153,14 +153,14 @@ cmd_rebuild() {
   # Copy latest configuration
   if [[ -n "$CONFIG_FILE" ]]; then
     echo "Copying updated configuration from $CONFIG_FILE..."
-    orb push "$NAME" "$CONFIG_FILE" /tmp/configuration.nix
-    orb run "$NAME" sudo cp /tmp/configuration.nix /etc/nixos/configuration.nix
+    orb push -m "$NAME" "$CONFIG_FILE" /tmp/configuration.nix
+    orb run -m "$NAME" sudo cp /tmp/configuration.nix /etc/nixos/configuration.nix
   else
     echo "WARNING: configuration.nix not found. Rebuilding with existing config in VM."
   fi
 
   echo "Rebuilding NixOS..."
-  orb run "$NAME" sudo nixos-rebuild switch
+  orb run -m "$NAME" sudo nixos-rebuild switch
   echo "Done. New generation created."
 }
 
@@ -171,7 +171,7 @@ cmd_rollback() {
   fi
 
   echo "Rolling back to previous generation..."
-  orb run "$NAME" sudo nixos-rebuild switch --rollback
+  orb run -m "$NAME" sudo nixos-rebuild switch --rollback
   echo "Done. Rolled back to previous generation."
 }
 
