@@ -1,4 +1,4 @@
-FROM portainer/dev-toolkit:2026.05
+FROM portainer/dev-toolkit:2025.12
 
 ENV HOME=/root
 ENV TERM=xterm-256color
@@ -319,8 +319,8 @@ EOF
 # ============================================
 # Custom scripts
 # ============================================
-COPY user-toolkits/alapenna-ghostty/scripts/ccm /usr/local/bin/ccm
-COPY user-toolkits/alapenna-ghostty/scripts/entrypoint.sh /entrypoint.sh
+COPY scripts/ccm /usr/local/bin/ccm
+COPY scripts/entrypoint.sh /entrypoint.sh
 RUN chmod +x /usr/local/bin/ccm /entrypoint.sh
 
 # ============================================

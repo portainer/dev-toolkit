@@ -1,0 +1,235 @@
+#!/usr/bin/env zsh
+# devbox-apple - Container lifecycle manager using Apple container CLI
+#
+# Requires: macOS 26+ with Apple container CLI
+#
+# Install:
+#   cp devbox-apple ~/.local/bin/
+#   chmod +x ~/.local/bin/devbox-apple
+#
+# Usage:
+#   devbox-apple          # Enter the container (creates/starts if needed)
+#   devbox-apple stop     # Stop the container
+#   devbox-apple destroy  # Remove container
+#   devbox-apple status   # Show container status
+#   devbox-apple build    # Build the image
+#   devbox-apple logs     # Show container logs
+
+set -e
+
+NAME="devbox-apple"
+IMAGE="devbox-apple:latest"
+
+# Paths (adjust to your setup)
+WORKSPACE_DIR="$HOME/workspaces/toolkit-workspace"
+SHARE_TMP="$HOME/tmp/dev-toolkit"
+
+# Source directories for initial copy (not mounted)
+SSH_DIR="$HOME/.ssh"
+GNUPG_DIR="$HOME/.gnupg"
+
+check_container_cli() {
+  if ! command -v container &>/dev/null; then
+    echo "Apple container CLI not found."
+    echo "Requires macOS 26+ with container CLI installed."
+    echo "See: https://github.com/apple/container"
+    exit 1
+  fi
+}
+
+# Copy SSH and GPG keys into container (one-time setup)
+setup_credentials() {
+  echo "Copying SSH keys..."
+  # Create directories
+  container exec "$NAME" mkdir -p /root/.ssh /root/.gnupg
+
+  # Copy SSH files (if they exist)
+  if [[ -d "$SSH_DIR" ]]; then
+    for f in "$SSH_DIR"/*; do
+      [[ -f "$f" ]] && cat "$f" | container exec -i "$NAME" tee "/root/.ssh/$(basename "$f")" > /dev/null
+    done
+    container exec "$NAME" chmod 700 /root/.ssh
+    container exec "$NAME" chmod 600 /root/.ssh/* 2>/dev/null || true
+  fi
+
+  # Copy GPG files (if they exist)
+  if [[ -d "$GNUPG_DIR" ]]; then
+    echo "Copying GPG keys..."
+    for f in "$GNUPG_DIR"/*; do
+      [[ -f "$f" ]] && cat "$f" | container exec -i "$NAME" tee "/root/.gnupg/$(basename "$f")" > /dev/null
+    done
+    container exec "$NAME" chmod 700 /root/.gnupg
+    container exec "$NAME" chmod 600 /root/.gnupg/* 2>/dev/null || true
+  fi
+
+  echo "Credentials copied."
+}
+
+cmd_enter() {
+  check_container_cli
+
+  # Check if container exists and is running
+  if container list 2>/dev/null | grep -q "^$NAME"; then
+    # Container exists, exec into it
+    exec container exec -ti "$NAME" /bin/zsh -l
+  fi
+
+  # Container doesn't exist, create and start it
+  echo "Creating container..."
+
+  # Ensure directories exist
+  mkdir -p "$WORKSPACE_DIR" "$SHARE_TMP"
+
+  # Start container in detached mode
+  # Note: Apple container uses FIXED allocation per VM (not shared like OrbStack)
+  # Default is 1GB RAM / 4 CPUs - too low for dev work, so we override.
+  container run \
+    --name "$NAME" \
+    --detach \
+    --memory 8g \
+    --cpus 4 \
+    --publish 6443-9999:6443-9999 \
+    --volume "$WORKSPACE_DIR:/workspace" \
+    --volume "$SHARE_TMP:/share-tmp" \
+    --volume "/var/run/docker.sock:/var/run/docker.sock" \
+    --ssh \
+    "$IMAGE"
+
+  # Wait for container to be ready
+  sleep 2
+
+  # Copy credentials on first creation
+  setup_credentials
+
+  # Enter the container
+  exec container exec -ti "$NAME" /bin/zsh -l
+}
+
+cmd_stop() {
+  check_container_cli
+
+  if container list 2>/dev/null | grep -q "^$NAME"; then
+    echo "Stopping container..."
+    container stop "$NAME"
+    echo "Container stopped."
+  else
+    echo "Container not running."
+  fi
+}
+
+cmd_destroy() {
+  check_container_cli
+
+  if container list --all 2>/dev/null | grep -q "^$NAME"; then
+    echo "Removing container..."
+    container delete "$NAME"
+    echo "Container removed."
+  else
+    echo "Container does not exist."
+  fi
+}
+
+cmd_status() {
+  check_container_cli
+
+  echo "Container CLI: installed"
+  echo ""
+
+  if container list 2>/dev/null | grep -q "^$NAME"; then
+    echo "Container: running"
+    container inspect "$NAME" 2>/dev/null | head -20
+  elif container list --all 2>/dev/null | grep -q "^$NAME"; then
+    echo "Container: stopped"
+  else
+    echo "Container: not created"
+  fi
+
+  echo ""
+  echo "Image:"
+  container image list 2>/dev/null | grep "$IMAGE" || echo "  (not built)"
+}
+
+cmd_build() {
+  check_container_cli
+
+  echo "Building image..."
+
+  # Find the Dockerfile location
+  SCRIPT_DIR="$(dirname "$0")"
+  if [[ -f "$SCRIPT_DIR/Dockerfile" ]]; then
+    BUILD_DIR="$SCRIPT_DIR"
+  elif [[ -f "./Dockerfile" ]]; then
+    BUILD_DIR="."
+  else
+    echo "Dockerfile not found. Run from the toolkit directory."
+    exit 1
+  fi
+
+  container build --tag "$IMAGE" "$BUILD_DIR"
+  echo ""
+  echo "Image built: $IMAGE"
+}
+
+cmd_logs() {
+  check_container_cli
+
+  if container list --all 2>/dev/null | grep -q "^$NAME"; then
+    container logs "$NAME"
+  else
+    echo "Container does not exist."
+  fi
+}
+
+cmd_help() {
+  echo "devbox-apple - Container lifecycle manager (Apple container)"
+  echo ""
+  echo "Usage: devbox-apple [command]"
+  echo ""
+  echo "Commands:"
+  echo "  (none)    Enter the container (creates if needed)"
+  echo "  stop      Stop the container"
+  echo "  destroy   Remove the container"
+  echo "  status    Show container and image status"
+  echo "  build     Build the container image"
+  echo "  logs      Show container logs"
+  echo "  help      Show this help"
+  echo ""
+  echo "Mounted:"
+  echo "  $WORKSPACE_DIR -> /workspace"
+  echo "  $SHARE_TMP -> /share-tmp"
+  echo "  /var/run/docker.sock (for docker CLI -> OrbStack)"
+  echo ""
+  echo "Ports:"
+  echo "  6443-9999 (mapped 1:1)"
+  echo ""
+  echo "Note: SSH/GPG keys are copied on first creation (not mounted)"
+}
+
+case "${1:-}" in
+  ""|enter)
+    cmd_enter
+    ;;
+  stop)
+    cmd_stop
+    ;;
+  destroy)
+    cmd_destroy
+    ;;
+  status)
+    cmd_status
+    ;;
+  build)
+    cmd_build
+    ;;
+  logs)
+    cmd_logs
+    ;;
+  help|--help|-h)
+    cmd_help
+    ;;
+  *)
+    echo "Unknown command: $1"
+    cmd_help
+    exit 1
+    ;;
+esac
