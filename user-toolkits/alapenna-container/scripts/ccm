@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# ccm - Claude commit message generator
+# Stages all changes, then generates a commit message using Claude
+
+set -e
+
+# Max diff size in bytes before falling back to manual input
+MAX_DIFF_SIZE=${CCM_MAX_DIFF_SIZE:-300000}
+
+# Check for any changes (staged or unstaged)
+if [[ -z "$(git status --porcelain)" ]]; then
+  echo "No changes to commit."
+  exit 1
+fi
+
+# Stage everything
+git add -A
+
+diff=$(git diff --cached)
+diff_size=${#diff}
+
+prompt='Write a commit message for this diff following this exact format:
+
+<subject line: imperative mood, describes the overall change, no prefix like "feat:" or "fix:">
+
+- <bullet point: specific change, starts with verb>
+- <bullet point: specific change, starts with verb>
+- ...
+
+Example:
+Update UI design spec with Step 6 implementation
+
+- Rename "Review & Deploy" to "Review & Install" throughout
+- Document actual implementation details
+- Add slide-out drawer specification
+
+Rules:
+- Subject line: imperative mood ("Add X" not "Added X"), max 72 chars
+- Body: 3-8 bullet points, each starting with a verb (Add, Fix, Update, Remove, Refactor, Extract, etc.)
+- No trailing periods on bullets
+- Output ONLY the message, no markdown fences or extra text'
+
+# Check if diff exceeds size limit
+if [[ $diff_size -gt $MAX_DIFF_SIZE ]]; then
+  echo "Diff too large for Claude ($(numfmt --to=iec $diff_size) > $(numfmt --to=iec $MAX_DIFF_SIZE))"
+  echo ""
+  git diff --cached --stat
+  echo ""
+  read -p "Enter commit message (or 'q' to abort): " manual_msg
+  if [[ "$manual_msg" == "q" || -z "$manual_msg" ]]; then
+    echo "Aborted (changes remain staged)."
+    exit 0
+  fi
+  msg="$manual_msg"
+  echo ""
+  read -p "Commit? [Y/n/e/u] " choice
+else
+  msg=$(echo "$diff" | claude -p "$prompt")
+  echo -e "\nSuggested:\n$msg\n"
+  read -p "Commit? [Y/n/e/u] " choice
+fi
+
+prompt_push() {
+  read -p "Push? [Y/n] " push_choice
+  case "${push_choice:-y}" in
+    n|N) echo "Skipped push." ;;
+    *) git push ;;
+  esac
+}
+
+case "${choice:-y}" in
+  n|N) echo "Aborted (changes remain staged)." ;;
+  e|E) git commit -e -m "$msg" && prompt_push ;;
+  u|U) git reset HEAD >/dev/null; echo "Unstaged all changes." ;;
+  *)   git commit -m "$msg" && prompt_push ;;
+esac
