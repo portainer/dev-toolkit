@@ -319,8 +319,8 @@ EOF
 # ============================================
 # Custom scripts
 # ============================================
-COPY user-toolkits/alapenna-ghostty/scripts/ccm /usr/local/bin/ccm
-COPY user-toolkits/alapenna-ghostty/scripts/entrypoint.sh /entrypoint.sh
+COPY scripts/ccm /usr/local/bin/ccm
+COPY scripts/entrypoint.sh /entrypoint.sh
 RUN chmod +x /usr/local/bin/ccm /entrypoint.sh
 
 # ============================================
