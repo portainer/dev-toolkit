@@ -4,6 +4,12 @@
 
 set -e
 
+# Check for claude CLI
+if ! command -v claude &>/dev/null; then
+  echo "Error: claude CLI not found. Install from https://claude.ai/code"
+  exit 1
+fi
+
 # Max diff size in bytes before falling back to manual input
 MAX_DIFF_SIZE=${CCM_MAX_DIFF_SIZE:-300000}
 

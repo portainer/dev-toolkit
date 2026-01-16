@@ -66,11 +66,13 @@ chmod +x ~/.local/bin/devbox-apple
 | Host | Container | Mode |
 |------|-----------|------|
 | `~/workspaces/toolkit-workspace` | `/workspace` | read-write |
-| `~/.ssh` | `/root/.ssh` | read-only |
-| `~/.gnupg` | `/root/.gnupg` | read-only |
+| `~/.ssh` | `/root/.ssh` | copied |
+| `~/.gnupg` | `/root/.gnupg` | copied |
 | `~/tmp/dev-toolkit` | `/share-tmp` | read-write |
 
-Edit `devbox` script to customize mount paths.
+Note: SSH and GPG directories are copied into the container on first creation, not live-mounted from the host.
+
+Edit `devbox-apple` script to customize mount paths.
 
 ## Included Tools
 
@@ -124,7 +126,7 @@ container system logs
 
 ```bash
 # Build locally
-devbox build
+devbox-apple build
 
 # Or pull from registry (if published)
 container image pull your-registry/devbox:latest
