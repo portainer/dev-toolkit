@@ -65,7 +65,7 @@ devbox-apple
 | `devbox-apple build --keep-builder` | Build and keep builder running (faster rebuilds) |
 | `devbox-apple rebuild` | Destroy container and rebuild image |
 | `devbox-apple rebuild --keep-builder` | Rebuild and keep builder running |
-| `devbox-apple builder-configure [cpus] [memory]` | Configure builder resources (e.g., `8 8g`) |
+| `devbox-apple builder-configure [profile]` | Configure builder with preset profile (light/balanced/performance/max) |
 | `devbox-apple logs` | Show container logs |
 
 ## Directory Mounts
@@ -93,28 +93,66 @@ Edit `devbox-apple` script to customize mount paths.
 
 ## Builder Configuration
 
-The build process uses a separate builder VM (managed by Apple container). By default, it's configured for **8 CPUs / 8GB RAM** for fast builds.
+### How the Builder Works
 
-**After each build, the builder is automatically removed** to free resources back to your Mac. This means:
-- ✓ Build completes → 8 CPUs / 8GB freed immediately
-- ✓ Your devbox container has full resources available
-- ⚠ Next build will recreate builder (~10-30 seconds overhead)
+The build process uses a **separate builder VM** (managed by Apple container). This builder:
 
-**For active Dockerfile development** (frequent rebuilds), keep the builder running:
+1. **Auto-creates on first build** using script defaults (8 CPUs / 8g by default)
+2. **Auto-removes after each build** to free resources immediately
+3. **Recreates on next build** (~10-30 seconds overhead)
+
+**This design maximizes resources for your working container** - the builder only consumes RAM/CPU during builds.
+
+### Builder Resource Profiles
+
+The **recommended profile is `performance`** (8 CPUs / 8g) for optimal build speed. If needed, you can adjust based on your Mac's capabilities:
 
 ```bash
-devbox-apple rebuild --keep-builder  # Faster subsequent builds
+# Recommended (default if no profile specified)
+devbox-apple builder-configure performance  # 8 CPUs / 8g   - Fast builds (recommended)
+
+# Alternative profiles
+devbox-apple builder-configure light        # 2 CPUs / 2g   - Minimal (16GB Mac)
+devbox-apple builder-configure balanced     # 4 CPUs / 4g   - Good balance
+devbox-apple builder-configure max          # 12 CPUs / 16g - Maximum (64GB Mac)
 ```
 
-**To change builder resources:**
+**Profile persists** across builds until you change it or until auto-removal happens.
+
+**Mismatch warnings:** If an existing builder doesn't match the recommended `performance` profile, you'll be warned before the build starts.
+
+### Script Defaults
+
+The script default is the **performance** profile (8 CPUs / 8g) - this is the recommended configuration for optimal build speed.
+
+If you want to permanently use a different profile:
+
+1. Edit `devbox-apple` script
+2. Set `BUILDER_CPUS` and `BUILDER_MEMORY` to your preferred values
+   - Example: `BUILDER_CPUS=4` and `BUILDER_MEMORY="4g"` for balanced
+3. All new builders will use these defaults
+
+**Note:** The mismatch warning will always check against the performance profile (8 CPUs / 8g) regardless of script defaults, as this is the recommended configuration.
+
+### Keeping Builder Between Builds
+
+During active Dockerfile development (frequent rebuilds), keep the builder to avoid recreation overhead:
 
 ```bash
-# Use 4 CPUs / 4GB for builds (if RAM-limited)
-devbox-apple builder-configure 4 4g
-
-# Or edit script permanently
-# Set: BUILDER_CPUS=4 and BUILDER_MEMORY="4g"
+devbox-apple rebuild --keep-builder  # Builder stays after build
+devbox-apple rebuild --keep-builder  # Reuses existing builder (fast!)
+devbox-apple rebuild                 # Final build removes builder
 ```
+
+### Builder Behavior Summary
+
+| Scenario | Builder Action | Notes |
+|----------|----------------|-------|
+| First build | Creates with script defaults | Uses BUILDER_CPUS/BUILDER_MEMORY (performance profile) |
+| Build completes | Auto-removes (frees resources) | Unless `--keep-builder` used |
+| Existing builder found | Uses existing config | Warns if not performance profile (8 CPUs / 8g) |
+| `builder-configure` called | Replaces with new profile | Persists until auto-removed |
+| No profile specified | Uses performance | `devbox-apple builder-configure` → performance profile |
 
 ## Port Configuration
 
