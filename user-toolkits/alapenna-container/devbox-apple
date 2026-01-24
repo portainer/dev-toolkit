@@ -101,7 +101,7 @@ cmd_enter() {
     --detach \
     --memory 8g \
     --cpus 4 \
-    --publish 6443-9999:6443-9999 \
+    --publish 10000-19999:10000-19999 \
     "${VOLUME_ARGS[@]}" \
     --ssh \
     "$IMAGE"
@@ -212,7 +212,7 @@ cmd_help() {
   echo "Note: Docker socket mounting not supported (use host Docker CLI)"
   echo ""
   echo "Ports:"
-  echo "  6443-9999 (mapped 1:1)"
+  echo "  10000-19999 (mapped 1:1)"
   echo ""
   echo "Note: SSH/GPG keys are copied on first creation (not mounted)"
 }
