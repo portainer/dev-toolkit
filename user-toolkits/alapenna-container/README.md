@@ -30,24 +30,24 @@ container --version
 container system status
 ```
 
+## Install devbox-apple script
+
+```bash
+cd user-toolkits/alapenna-container
+cp devbox-apple ~/.local/bin/
+chmod +x ~/.local/bin/devbox-apple
+```
+
 ## Quick Start
 
 ```bash
 # 1. Build the image
-cd user-toolkits/alapenna-container
 devbox-apple build
 
 # 2. Start and enter the container
 devbox-apple
 
 # 3. You're in! Multiple terminals can connect
-```
-
-## Install devbox-apple script
-
-```bash
-cp devbox-apple ~/.local/bin/
-chmod +x ~/.local/bin/devbox-apple
 ```
 
 ## Commands

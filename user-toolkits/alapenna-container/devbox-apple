@@ -80,6 +80,21 @@ cmd_enter() {
   # Ensure directories exist
   mkdir -p "$WORKSPACE_DIR" "$SHARE_TMP"
 
+  # Build volume arguments
+  VOLUME_ARGS=(
+    --volume "$WORKSPACE_DIR:/workspace"
+    --volume "$SHARE_TMP:/share-tmp"
+  )
+
+  # Optional: Mount docker.sock if OrbStack/Docker is running
+  if [[ -S /var/run/docker.sock ]]; then
+    echo "✓ Docker socket detected - mounting for Docker CLI access"
+    VOLUME_ARGS+=(--volume "/var/run/docker.sock:/var/run/docker.sock")
+  else
+    echo "ℹ Docker socket not found - Docker CLI won't work inside container"
+    echo "  (Start OrbStack/Docker Desktop to enable)"
+  fi
+
   # Start container in detached mode
   # Note: Apple container uses FIXED allocation per VM (not shared like OrbStack)
   # Default is 1GB RAM / 4 CPUs - too low for dev work, so we override.
@@ -89,9 +104,7 @@ cmd_enter() {
     --memory 8g \
     --cpus 4 \
     --publish 6443-9999:6443-9999 \
-    --volume "$WORKSPACE_DIR:/workspace" \
-    --volume "$SHARE_TMP:/share-tmp" \
-    --volume "/var/run/docker.sock:/var/run/docker.sock" \
+    "${VOLUME_ARGS[@]}" \
     --ssh \
     "$IMAGE"
 
@@ -197,7 +210,7 @@ cmd_help() {
   echo "Mounted:"
   echo "  $WORKSPACE_DIR -> /workspace"
   echo "  $SHARE_TMP -> /share-tmp"
-  echo "  /var/run/docker.sock (for docker CLI -> OrbStack)"
+  echo "  /var/run/docker.sock -> /var/run/docker.sock (if OrbStack/Docker running)"
   echo ""
   echo "Ports:"
   echo "  6443-9999 (mapped 1:1)"
