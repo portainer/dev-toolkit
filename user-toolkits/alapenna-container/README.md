@@ -59,6 +59,7 @@ devbox-apple
 | `devbox-apple destroy` | Remove the container |
 | `devbox-apple status` | Show container/image status |
 | `devbox-apple build` | Build the image from Dockerfile |
+| `devbox-apple rebuild` | Destroy container and rebuild image |
 | `devbox-apple logs` | Show container logs |
 
 ## Directory Mounts

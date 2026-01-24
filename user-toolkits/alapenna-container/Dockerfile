@@ -24,7 +24,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf $(which fdfind) /usr/local/bin/fd \
-    && ln -sf $(which batcat) /usr/local/bin/bat
+    && ln -sf $(which batcat) /usr/local/bin/bat \
+    && mkdir -p /usr/share/fzf \
+    && curl -fsSL https://raw.githubusercontent.com/junegunn/fzf/refs/heads/master/shell/key-bindings.zsh -o /usr/share/fzf/key-bindings.zsh
 
 # ============================================
 # zsh plugins (no oh-my-zsh) + starship prompt
@@ -252,7 +254,7 @@ bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 
 # fzf keybindings (Ctrl+R history, Ctrl+T files, Alt+C cd)
-source /usr/share/doc/fzf/examples/key-bindings.zsh
+source /usr/share/fzf/key-bindings.zsh
 
 # ----------------------------------------
 # Environment
