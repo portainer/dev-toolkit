@@ -28,6 +28,10 @@ SHARE_TMP="$HOME/tmp/dev-toolkit"
 SSH_DIR="$HOME/.ssh"
 GNUPG_DIR="$HOME/.gnupg"
 
+# Builder configuration
+BUILDER_CPUS=8
+BUILDER_MEMORY="8g"
+
 check_container_cli() {
   if ! command -v container &>/dev/null; then
     echo "Apple container CLI not found."
@@ -175,7 +179,35 @@ cmd_status() {
 cmd_build() {
   check_container_cli
 
+  # Parse flags
+  local keep_builder=false
+  if [[ "$1" == "--keep-builder" ]]; then
+    keep_builder=true
+  fi
+
   echo "Building image..."
+
+  # Ensure builder has correct resources
+  local current_builder=$(container builder status 2>/dev/null | grep -E "^buildkit" || echo "")
+  if [[ -n "$current_builder" ]]; then
+    # Check if resources match config
+    local current_cpus=$(echo "$current_builder" | awk '{print $6}')
+    local current_mem=$(echo "$current_builder" | awk '{print $7}')
+    local target_mem_mb=$((${BUILDER_MEMORY%g} * 1024))
+
+    if [[ "$current_cpus" != "$BUILDER_CPUS" ]] || [[ "$current_mem" != "$target_mem_mb" ]]; then
+      echo "Reconfiguring builder to ${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY}..."
+      container builder delete buildkit 2>/dev/null || true
+      sleep 1
+    fi
+  fi
+
+  # Start builder with configured resources if not running
+  if ! container builder status 2>/dev/null | grep -q "^buildkit.*running"; then
+    echo "Starting builder (${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY})..."
+    container builder start --cpus "$BUILDER_CPUS" --memory "$BUILDER_MEMORY"
+    sleep 2
+  fi
 
   # Find the Dockerfile location
   SCRIPT_DIR="$(dirname "$0")"
@@ -188,9 +220,18 @@ cmd_build() {
     exit 1
   fi
 
+  # Build the image
   container build --tag "$IMAGE" "$BUILD_DIR"
   echo ""
   echo "Image built: $IMAGE"
+
+  # Auto-remove builder unless --keep-builder flag
+  if [[ "$keep_builder" == false ]]; then
+    echo ""
+    echo "Removing builder to free resources (${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY})..."
+    echo "(Use --keep-builder flag to keep builder for faster subsequent builds)"
+    container builder delete buildkit 2>/dev/null || true
+  fi
 }
 
 cmd_rebuild() {
@@ -203,8 +244,8 @@ cmd_rebuild() {
   cmd_destroy
   echo ""
 
-  # Build new image
-  cmd_build
+  # Build new image (pass through any flags like --keep-builder)
+  cmd_build "$@"
 }
 
 cmd_logs() {
@@ -217,20 +258,57 @@ cmd_logs() {
   fi
 }
 
+cmd_builder_configure() {
+  check_container_cli
+
+  local cpus="${1:-$BUILDER_CPUS}"
+  local memory="${2:-$BUILDER_MEMORY}"
+
+  echo "Configuring builder: ${cpus} CPUs / ${memory}"
+  echo ""
+
+  # Stop and remove existing builder
+  if container builder status 2>/dev/null | grep -q "^buildkit"; then
+    echo "Removing existing builder..."
+    container builder delete buildkit
+    echo ""
+  fi
+
+  # Start with new configuration
+  echo "Starting builder with ${cpus} CPUs / ${memory}..."
+  container builder start --cpus "$cpus" --memory "$memory"
+
+  echo ""
+  echo "Builder configured successfully."
+  echo ""
+  echo "To make this permanent, edit the script and set:"
+  echo "  BUILDER_CPUS=${cpus}"
+  echo "  BUILDER_MEMORY=\"${memory}\""
+}
+
 cmd_help() {
   echo "devbox-apple - Container lifecycle manager (Apple container)"
   echo ""
-  echo "Usage: devbox-apple [command]"
+  echo "Usage: devbox-apple [command] [options]"
   echo ""
   echo "Commands:"
-  echo "  (none)    Enter the container (creates if needed)"
-  echo "  stop      Stop the container"
-  echo "  destroy   Remove the container"
-  echo "  status    Show container and image status"
-  echo "  build     Build the container image"
-  echo "  rebuild   Destroy container and rebuild image"
-  echo "  logs      Show container logs"
-  echo "  help      Show this help"
+  echo "  (none)              Enter the container (creates if needed)"
+  echo "  stop                Stop the container"
+  echo "  destroy             Remove the container"
+  echo "  status              Show container and image status"
+  echo "  build               Build the container image"
+  echo "  rebuild             Destroy container and rebuild image"
+  echo "  logs                Show container logs"
+  echo "  builder-configure   Configure builder resources (cpus memory)"
+  echo "  help                Show this help"
+  echo ""
+  echo "Build Options:"
+  echo "  --keep-builder      Don't remove builder after build (faster rebuilds)"
+  echo ""
+  echo "Builder Config (current):"
+  echo "  CPUs:    $BUILDER_CPUS"
+  echo "  Memory:  $BUILDER_MEMORY"
+  echo "  Auto-remove after build: yes (use --keep-builder to prevent)"
   echo ""
   echo "Mounted:"
   echo "  $WORKSPACE_DIR -> /workspace"
@@ -258,13 +336,19 @@ case "${1:-}" in
     cmd_status
     ;;
   build)
-    cmd_build
+    shift
+    cmd_build "$@"
     ;;
   rebuild)
-    cmd_rebuild
+    shift
+    cmd_rebuild "$@"
     ;;
   logs)
     cmd_logs
+    ;;
+  builder-configure)
+    shift
+    cmd_builder_configure "$@"
     ;;
   help|--help|-h)
     cmd_help

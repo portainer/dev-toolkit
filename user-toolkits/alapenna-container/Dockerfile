@@ -42,6 +42,7 @@ RUN mkdir -p /root/.zsh \
 RUN mkdir -p /root/.config && cat > /root/.config/starship.toml <<'EOF'
 format = """
 $directory\
+$hostname\
 $git_branch\
 $git_status\
 $line_break\
@@ -52,9 +53,14 @@ style = "cyan bold"
 truncation_length = 5
 truncate_to_repo = false
 
+[hostname]
+ssh_only = false
+format = "[ @ $hostname]($style)"
+style = "yellow bold"
+
 [git_branch]
 style = "purple bold"
-format = "[│ $symbol$branch]($style)"
+format = "[ │ $symbol$branch]($style)"
 symbol = ""
 
 [git_status]
@@ -138,8 +144,12 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
 # ============================================
 # glow (markdown reader)
 # ============================================
-RUN go install github.com/charmbracelet/glow@latest \
-    && go clean -cache -modcache
+RUN GLOW_VERSION=$(curl -s "https://api.github.com/repos/charmbracelet/glow/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') \
+    && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "amd64") \
+    && curl -Lo glow.tar.gz "https://github.com/charmbracelet/glow/releases/download/v${GLOW_VERSION}/glow_${GLOW_VERSION}_Linux_${ARCH}.tar.gz" \
+    && tar xf glow.tar.gz glow \
+    && mv glow /usr/local/bin/ \
+    && rm glow.tar.gz
 
 # ============================================
 # Claude Code + Plannotator CLI
@@ -263,9 +273,9 @@ export PATH="$HOME/.local/bin:$PATH"
 export EDITOR="fresh"
 export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
 
-# Plannotator (devcontainer mode on port 8999)
+# Plannotator (devcontainer mode on port 17777)
 export PLANNOTATOR_REMOTE=1
-export PLANNOTATOR_PORT=8999
+export PLANNOTATOR_PORT=17777
 
 # ----------------------------------------
 # Tool integrations

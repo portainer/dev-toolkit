@@ -59,7 +59,10 @@ devbox-apple
 | `devbox-apple destroy` | Remove the container |
 | `devbox-apple status` | Show container/image status |
 | `devbox-apple build` | Build the image from Dockerfile |
+| `devbox-apple build --keep-builder` | Build and keep builder running (faster rebuilds) |
 | `devbox-apple rebuild` | Destroy container and rebuild image |
+| `devbox-apple rebuild --keep-builder` | Rebuild and keep builder running |
+| `devbox-apple builder-configure [cpus] [memory]` | Configure builder resources (e.g., `8 8g`) |
 | `devbox-apple logs` | Show container logs |
 
 ## Directory Mounts
@@ -82,26 +85,43 @@ Edit `devbox-apple` script to customize mount paths.
 - **Terminal**: zsh, starship, fzf, ripgrep, fd, bat, eza
 - **Files**: yazi, zoxide, glow
 - **Editor**: fresh
-- **AI**: Claude Code with plugins (claude-hud, plannotator)
+- **AI**: Claude Code with plugins (claude-hud, plannotator on port 17777)
 - **Scripts**: ccm (Claude commit message generator)
 
-## Port Forwarding
+## Builder Configuration
 
-The container exposes ports **10000-19999** to avoid conflicts with host services.
+The build process uses a separate builder VM (managed by Apple container). By default, it's configured for **8 CPUs / 8GB RAM** for fast builds.
 
-Suggested port assignments for common services:
+**After each build, the builder is automatically removed** to free resources back to your Mac. This means:
+- ✓ Build completes → 8 CPUs / 8GB freed immediately
+- ✓ Your devbox container has full resources available
+- ⚠ Next build will recreate builder (~10-30 seconds overhead)
+
+**For active Dockerfile development** (frequent rebuilds), keep the builder running:
+
+```bash
+devbox-apple rebuild --keep-builder  # Faster subsequent builds
+```
+
+**To change builder resources:**
+
+```bash
+# Use 4 CPUs / 4GB for builds (if RAM-limited)
+devbox-apple builder-configure 4 4g
+
+# Or edit script permanently
+# Set: BUILDER_CPUS=4 and BUILDER_MEMORY="4g"
+```
+
+## Port Configuration
+
+The container exposes ports **10000-19999** (mapped 1:1 to host) to avoid conflicts with system services.
+
+### Pre-configured Services
 
 | Port | Service |
 |------|---------|
-| 19000 | Portainer HTTP |
-| 19443 | Portainer HTTPS |
-| 18999 | Plannotator |
-| 16443 | Kubernetes API |
-| 13000-13999 | Frontend dev servers |
-| 14000-14999 | Backend APIs |
-| 15000-15999 | Databases/services |
-
-Configure your applications to bind to these high ports to avoid conflicts.
+| 17777 | Plannotator |
 
 ## Isolation Benefits
 
