@@ -138,6 +138,9 @@ cmd_destroy() {
   check_container_cli
 
   if container list --all 2>/dev/null | grep -q "^$NAME"; then
+    # Stop first if running
+    cmd_stop
+
     echo "Removing container..."
     container delete "$NAME"
     echo "Container removed."
@@ -193,14 +196,11 @@ cmd_rebuild() {
   echo "Rebuilding container (destroy + build)..."
   echo ""
 
-  # Destroy if exists
-  if container list --all 2>/dev/null | grep -q "^$NAME"; then
-    echo "Removing existing container..."
-    container delete "$NAME"
-    echo ""
-  fi
+  # Destroy existing container (auto-stops if needed)
+  cmd_destroy
+  echo ""
 
-  # Build
+  # Build new image
   cmd_build
 }
 
