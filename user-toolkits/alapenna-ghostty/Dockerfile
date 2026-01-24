@@ -158,8 +158,8 @@ RUN claude plugin marketplace add jarrodwatts/claude-hud \
     && claude plugin install gopls-lsp@claude-plugins-official
 
 # Claude Code config files
-RUN mkdir -p /root/.claude/plugins/claude-hud \
-    && cat > /root/.claude/plugins/claude-hud/config.json <<'EOF'
+RUN mkdir -p $HOME/.claude/plugins/claude-hud \
+    && cat > $HOME/.claude/plugins/claude-hud/config.json <<'EOF'
 {
   "layout": "default",
   "display": {
@@ -181,7 +181,7 @@ RUN mkdir -p /root/.claude/plugins/claude-hud \
 }
 EOF
 
-RUN cat > /root/.claude/settings.json <<'EOF'
+RUN cat > $HOME/.claude/settings.json <<'EOF'
 {
   "statusLine": {
     "type": "command",
@@ -195,7 +195,8 @@ RUN cat > /root/.claude/settings.json <<'EOF'
   "permissions": {
     "deny": [
       "Read(**/.env*)",
-      "Read(~/.ssh/**)"
+      "Read(~/.ssh/**)",
+      "Read(~/.docker/**)"
     ]
   }
 }
