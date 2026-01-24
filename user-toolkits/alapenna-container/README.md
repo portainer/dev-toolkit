@@ -18,6 +18,7 @@ Each container runs in its own lightweight VM, providing true isolation without 
 
 - macOS 26 (Tahoe) or later
 - Apple Silicon Mac
+- zsh shell (default on macOS)
 
 ## Installing Apple Container CLI
 
@@ -31,6 +32,8 @@ container system status
 ```
 
 ## Install devbox-apple script
+
+**Note:** The `devbox-apple` script requires `zsh` (default shell on macOS).
 
 ```bash
 cd user-toolkits/alapenna-container
