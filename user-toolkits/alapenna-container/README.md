@@ -86,12 +86,21 @@ Edit `devbox-apple` script to customize mount paths.
 
 ## Port Forwarding
 
+The container exposes ports **10000-19999** to avoid conflicts with host services.
+
+Suggested port assignments for common services:
+
 | Port | Service |
 |------|---------|
-| 6443 | Kubernetes API |
-| 8999 | Plannotator |
-| 9000 | Portainer HTTP |
-| 9443 | Portainer HTTPS |
+| 19000 | Portainer HTTP |
+| 19443 | Portainer HTTPS |
+| 18999 | Plannotator |
+| 16443 | Kubernetes API |
+| 13000-13999 | Frontend dev servers |
+| 14000-14999 | Backend APIs |
+| 15000-15999 | Databases/services |
+
+Configure your applications to bind to these high ports to avoid conflicts.
 
 ## Isolation Benefits
 
