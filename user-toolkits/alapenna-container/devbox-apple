@@ -207,9 +207,9 @@ cmd_build() {
       echo "Build may be slower/faster than expected."
       echo "To use defaults, run: devbox-apple builder-configure"
       echo ""
-      read -p "Continue with current builder? [y/N] " -n 1 -r
+      read "reply?Continue with current builder? [y/N] "
       echo ""
-      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      if [[ ! $reply =~ ^[Yy]$ ]]; then
         echo "Build cancelled."
         exit 0
       fi
