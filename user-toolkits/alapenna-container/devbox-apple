@@ -138,8 +138,11 @@ cmd_destroy() {
   check_container_cli
 
   if container list --all 2>/dev/null | grep -q "^$NAME"; then
-    # Stop first if running
-    cmd_stop
+    # Stop first if running (silently)
+    if container list 2>/dev/null | grep -q "^$NAME"; then
+      echo "Stopping container..."
+      container stop "$NAME"
+    fi
 
     echo "Removing container..."
     container delete "$NAME"
