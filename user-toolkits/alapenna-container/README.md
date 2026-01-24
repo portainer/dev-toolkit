@@ -102,8 +102,12 @@ Unlike OrbStack which [auto-mounts /Users and /Volumes](https://github.com/orbst
 - **No snapshots yet**: The `container` CLI doesn't expose VM snapshot/restore (though Virtualization.framework supports it)
 - **Pre-1.0**: API may change between versions
 - **Image unpacking**: Can be slow for large images
+- **No Docker socket mounting (yet)**: Single file/socket mounting [was merged](https://github.com/apple/containerization/pull/487) on 2026-01-23 but not yet released (current: 0.8.0). Expected in a future release. Until then, use Docker CLI from your host Mac instead of inside the container
 
 ## Future Enhancements
+
+Coming in next container CLI release:
+- Docker socket mounting (merged, awaiting release - see Known Limitations)
 
 Potential wrapper features to build:
 - Snapshot/restore via Swift (using Virtualization.framework APIs)

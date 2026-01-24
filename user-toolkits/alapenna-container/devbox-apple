@@ -81,19 +81,17 @@ cmd_enter() {
   mkdir -p "$WORKSPACE_DIR" "$SHARE_TMP"
 
   # Build volume arguments
+  # Note: Single file mounting support merged (https://github.com/apple/containerization/pull/487)
+  # but not yet released in container CLI. When available (likely 0.9.0+), uncomment below:
+  #
+  # if [[ -S /var/run/docker.sock ]]; then
+  #   echo "✓ Docker socket detected - mounting for Docker CLI access"
+  #   VOLUME_ARGS+=(--volume "/var/run/docker.sock:/var/run/docker.sock")
+  # fi
   VOLUME_ARGS=(
     --volume "$WORKSPACE_DIR:/workspace"
     --volume "$SHARE_TMP:/share-tmp"
   )
-
-  # Optional: Mount docker.sock if OrbStack/Docker is running
-  if [[ -S /var/run/docker.sock ]]; then
-    echo "✓ Docker socket detected - mounting for Docker CLI access"
-    VOLUME_ARGS+=(--volume "/var/run/docker.sock:/var/run/docker.sock")
-  else
-    echo "ℹ Docker socket not found - Docker CLI won't work inside container"
-    echo "  (Start OrbStack/Docker Desktop to enable)"
-  fi
 
   # Start container in detached mode
   # Note: Apple container uses FIXED allocation per VM (not shared like OrbStack)
@@ -210,7 +208,8 @@ cmd_help() {
   echo "Mounted:"
   echo "  $WORKSPACE_DIR -> /workspace"
   echo "  $SHARE_TMP -> /share-tmp"
-  echo "  /var/run/docker.sock -> /var/run/docker.sock (if OrbStack/Docker running)"
+  echo ""
+  echo "Note: Docker socket mounting not supported (use host Docker CLI)"
   echo ""
   echo "Ports:"
   echo "  6443-9999 (mapped 1:1)"
