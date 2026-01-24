@@ -44,25 +44,31 @@ setup_credentials() {
   container exec "$NAME" mkdir -p /root/.ssh /root/.gnupg
 
   # Copy SSH files (if they exist)
-  if [[ -d "$SSH_DIR" ]]; then
-    for f in "$SSH_DIR"/*; do
+  local ssh_files=("$SSH_DIR"/*)
+  if [[ -d "$SSH_DIR" ]] && [[ -e "${ssh_files[0]}" ]]; then
+    for f in "${ssh_files[@]}"; do
       [[ -f "$f" ]] && cat "$f" | container exec -i "$NAME" tee "/root/.ssh/$(basename "$f")" > /dev/null
     done
     container exec "$NAME" chmod 700 /root/.ssh
     container exec "$NAME" chmod 600 /root/.ssh/* 2>/dev/null || true
+  else
+    echo "  (no SSH keys found, skipping)"
   fi
 
   # Copy GPG files (if they exist)
-  if [[ -d "$GNUPG_DIR" ]]; then
+  local gpg_files=("$GNUPG_DIR"/*)
+  if [[ -d "$GNUPG_DIR" ]] && [[ -e "${gpg_files[0]}" ]]; then
     echo "Copying GPG keys..."
-    for f in "$GNUPG_DIR"/*; do
+    for f in "${gpg_files[@]}"; do
       [[ -f "$f" ]] && cat "$f" | container exec -i "$NAME" tee "/root/.gnupg/$(basename "$f")" > /dev/null
     done
     container exec "$NAME" chmod 700 /root/.gnupg
     container exec "$NAME" chmod 600 /root/.gnupg/* 2>/dev/null || true
+  else
+    echo "  (no GPG keys found, skipping)"
   fi
 
-  echo "Credentials copied."
+  echo "Credentials setup complete."
 }
 
 cmd_enter() {
@@ -181,6 +187,23 @@ cmd_build() {
   echo "Image built: $IMAGE"
 }
 
+cmd_rebuild() {
+  check_container_cli
+
+  echo "Rebuilding container (destroy + build)..."
+  echo ""
+
+  # Destroy if exists
+  if container list --all 2>/dev/null | grep -q "^$NAME"; then
+    echo "Removing existing container..."
+    container delete "$NAME"
+    echo ""
+  fi
+
+  # Build
+  cmd_build
+}
+
 cmd_logs() {
   check_container_cli
 
@@ -202,6 +225,7 @@ cmd_help() {
   echo "  destroy   Remove the container"
   echo "  status    Show container and image status"
   echo "  build     Build the container image"
+  echo "  rebuild   Destroy container and rebuild image"
   echo "  logs      Show container logs"
   echo "  help      Show this help"
   echo ""
@@ -232,6 +256,9 @@ case "${1:-}" in
     ;;
   build)
     cmd_build
+    ;;
+  rebuild)
+    cmd_rebuild
     ;;
   logs)
     cmd_logs
