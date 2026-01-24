@@ -284,7 +284,7 @@ cmd_builder_configure() {
   # Stop and remove existing builder
   if container builder status 2>/dev/null | grep -q "^buildkit"; then
     echo "Removing existing builder..."
-    container builder delete buildkit
+    container builder delete
     echo ""
   fi
 
