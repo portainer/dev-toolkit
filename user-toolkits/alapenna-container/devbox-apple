@@ -190,21 +190,33 @@ cmd_build() {
   # Check current builder status
   local current_builder=$(container builder status 2>/dev/null | grep -E "^buildkit" || echo "")
   if [[ -n "$current_builder" ]]; then
-    # Builder exists, show actual config
-    local current_cpus=$(echo "$current_builder" | awk '{print $6}')
-    local current_mem_mb=$(echo "$current_builder" | awk '{print $7}')
+    # Builder exists - use it (respect manual configuration)
+    local current_cpus=$(echo "$current_builder" | awk '{print $5}')
+    local current_mem_mb=$(echo "$current_builder" | awk '{print $6}')
     local current_mem_gb=$((current_mem_mb / 1024))
     echo "Using existing builder: ${current_cpus} CPUs / ${current_mem_gb}g"
 
-    # Check if it matches script defaults
+    # Check for mismatch with script defaults
     local target_mem_mb=$((${BUILDER_MEMORY%g} * 1024))
     if [[ "$current_cpus" != "$BUILDER_CPUS" ]] || [[ "$current_mem_mb" != "$target_mem_mb" ]]; then
-      echo "(Script default: ${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY} - use 'devbox-apple builder-configure' to reconfigure)"
+      echo ""
+      echo "⚠️  WARNING: Builder config doesn't match script defaults"
+      echo "   Current:  ${current_cpus} CPUs / ${current_mem_gb}g"
+      echo "   Default:  ${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY}"
+      echo ""
+      echo "Build may be slower/faster than expected."
+      echo "To use defaults, run: devbox-apple builder-configure"
+      echo ""
+      read -p "Continue with current builder? [y/N] " -n 1 -r
+      echo ""
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Build cancelled."
+        exit 0
+      fi
     fi
   else
-    # No builder, will create with script defaults
-    echo "Builder configuration: ${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY}"
-    echo "Starting builder..."
+    # No builder - create with script defaults
+    echo "No builder found, creating with defaults: ${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY}"
     container builder start --cpus "$BUILDER_CPUS" --memory "$BUILDER_MEMORY"
     sleep 2
   fi
