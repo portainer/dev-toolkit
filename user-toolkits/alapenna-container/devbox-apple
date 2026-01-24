@@ -32,7 +32,7 @@ GNUPG_DIR="$HOME/.gnupg"
 CONTAINER_CPUS=4
 CONTAINER_MEMORY="8g"
 
-# Builder configuration
+# Builder configuration (default: performance profile)
 BUILDER_CPUS=8
 BUILDER_MEMORY="8g"
 
@@ -215,17 +215,17 @@ cmd_build() {
     local current_mem_gb="${resources[2]}"
     echo "Using existing builder: ${current_cpus} CPUs / ${current_mem_gb}g"
 
-    # Check for mismatch with script defaults
-    local target_mem_mb=$((${BUILDER_MEMORY%g} * 1024))
-    local current_mem_mb=$(echo "$current_builder" | awk '{print $6}')
-    if [[ "$current_cpus" != "$BUILDER_CPUS" ]] || [[ "$current_mem_mb" != "$target_mem_mb" ]]; then
+    # Check for mismatch with recommended performance profile (8 CPUs / 8g)
+    local recommended_cpus=8
+    local recommended_mem_gb=8
+    if [[ "$current_cpus" != "$recommended_cpus" ]] || [[ "$current_mem_gb" != "$recommended_mem_gb" ]]; then
       echo ""
-      echo "⚠️  WARNING: Builder config doesn't match script defaults"
-      echo "   Current:  ${current_cpus} CPUs / ${current_mem_gb}g"
-      echo "   Default:  ${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY}"
+      echo "⚠️  WARNING: Builder doesn't match recommended performance profile"
+      echo "   Current:      ${current_cpus} CPUs / ${current_mem_gb}g"
+      echo "   Recommended:  ${recommended_cpus} CPUs / ${recommended_mem_gb}g (performance profile)"
       echo ""
-      echo "Build may be slower/faster than expected."
-      echo "To use defaults, run: devbox-apple builder-configure"
+      echo "Build may be slower than expected."
+      echo "To use recommended config, run: devbox-apple builder-configure performance"
       echo ""
       read "reply?Continue with current builder? [y/N] "
       echo ""
@@ -296,10 +296,43 @@ cmd_logs() {
 cmd_builder_configure() {
   check_container_cli
 
-  local cpus="${1:-$BUILDER_CPUS}"
-  local memory="${2:-$BUILDER_MEMORY}"
+  local profile="${1:-performance}"
+  local cpus memory
 
-  echo "Configuring builder: ${cpus} CPUs / ${memory}"
+  # Map profile to resources
+  case "$profile" in
+    light)
+      cpus=2
+      memory="2g"
+      ;;
+    balanced)
+      cpus=4
+      memory="4g"
+      ;;
+    performance)
+      cpus=8
+      memory="8g"
+      ;;
+    max)
+      cpus=12
+      memory="16g"
+      ;;
+    *)
+      echo "Error: Unknown profile '$profile'"
+      echo ""
+      echo "Available profiles:"
+      echo "  light        2 CPUs / 2g   - Minimal resource use"
+      echo "  balanced     4 CPUs / 4g   - Good for most builds"
+      echo "  performance  8 CPUs / 8g   - Fast builds (recommended)"
+      echo "  max          12 CPUs / 16g - Maximum performance"
+      echo ""
+      echo "Usage: devbox-apple builder-configure [profile]"
+      echo "Example: devbox-apple builder-configure performance"
+      exit 1
+      ;;
+  esac
+
+  echo "Configuring builder: ${profile} profile (${cpus} CPUs / ${memory})"
   echo ""
 
   # Stop and remove existing builder
@@ -334,17 +367,26 @@ cmd_help() {
   echo "  build               Build the container image"
   echo "  rebuild             Destroy container and rebuild image"
   echo "  logs                Show container logs"
-  echo "  builder-configure   Configure builder resources (cpus memory)"
+  echo "  builder-configure   Configure builder resources with preset profiles"
   echo "  help                Show this help"
   echo ""
   echo "Build Options:"
   echo "  --keep-builder      Don't remove builder after build (faster rebuilds)"
   echo ""
+  echo "Builder Profiles:"
+  echo "  performance  8 CPUs / 8g   - Fast builds (recommended, default)"
+  echo "  light        2 CPUs / 2g   - Minimal resource use"
+  echo "  balanced     4 CPUs / 4g   - Good for most builds"
+  echo "  max          12 CPUs / 16g - Maximum performance"
+  echo ""
+  echo "  Usage: devbox-apple builder-configure [profile]"
+  echo "  Default: devbox-apple builder-configure  (uses performance)"
+  echo ""
   echo "Container Resources:"
   echo "  CPUs:    $CONTAINER_CPUS"
   echo "  Memory:  $CONTAINER_MEMORY"
   echo ""
-  echo "Builder Resources:"
+  echo "Builder Resources (current script default):"
   echo "  CPUs:    $BUILDER_CPUS"
   echo "  Memory:  $BUILDER_MEMORY"
   echo "  Auto-remove after build: yes (use --keep-builder to prevent)"
