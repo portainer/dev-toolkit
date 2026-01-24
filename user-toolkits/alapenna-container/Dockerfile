@@ -147,9 +147,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
 RUN GLOW_VERSION=$(curl -s "https://api.github.com/repos/charmbracelet/glow/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') \
     && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "amd64") \
     && curl -Lo glow.tar.gz "https://github.com/charmbracelet/glow/releases/download/v${GLOW_VERSION}/glow_${GLOW_VERSION}_Linux_${ARCH}.tar.gz" \
-    && tar xf glow.tar.gz glow \
-    && mv glow /usr/local/bin/ \
-    && rm glow.tar.gz
+    && tar xzf glow.tar.gz \
+    && mv glow_*/glow /usr/local/bin/ \
+    && rm -rf glow.tar.gz glow_*
 
 # ============================================
 # Claude Code + Plannotator CLI

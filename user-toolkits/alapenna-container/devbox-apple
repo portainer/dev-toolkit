@@ -187,27 +187,29 @@ cmd_build() {
 
   echo "Building image..."
 
-  # Ensure builder has correct resources
+  # Check current builder status
   local current_builder=$(container builder status 2>/dev/null | grep -E "^buildkit" || echo "")
   if [[ -n "$current_builder" ]]; then
-    # Check if resources match config
+    # Builder exists, show actual config
     local current_cpus=$(echo "$current_builder" | awk '{print $6}')
-    local current_mem=$(echo "$current_builder" | awk '{print $7}')
+    local current_mem_mb=$(echo "$current_builder" | awk '{print $7}')
+    local current_mem_gb=$((current_mem_mb / 1024))
+    echo "Using existing builder: ${current_cpus} CPUs / ${current_mem_gb}g"
+
+    # Check if it matches script defaults
     local target_mem_mb=$((${BUILDER_MEMORY%g} * 1024))
-
-    if [[ "$current_cpus" != "$BUILDER_CPUS" ]] || [[ "$current_mem" != "$target_mem_mb" ]]; then
-      echo "Reconfiguring builder to ${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY}..."
-      container builder delete buildkit 2>/dev/null || true
-      sleep 1
+    if [[ "$current_cpus" != "$BUILDER_CPUS" ]] || [[ "$current_mem_mb" != "$target_mem_mb" ]]; then
+      echo "(Script default: ${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY} - use 'devbox-apple builder-configure' to reconfigure)"
     fi
-  fi
-
-  # Start builder with configured resources if not running
-  if ! container builder status 2>/dev/null | grep -q "^buildkit.*running"; then
-    echo "Starting builder (${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY})..."
+  else
+    # No builder, will create with script defaults
+    echo "Builder configuration: ${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY}"
+    echo "Starting builder..."
     container builder start --cpus "$BUILDER_CPUS" --memory "$BUILDER_MEMORY"
     sleep 2
   fi
+
+  echo ""
 
   # Find the Dockerfile location
   SCRIPT_DIR="$(dirname "$0")"
