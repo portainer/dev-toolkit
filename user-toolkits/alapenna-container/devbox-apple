@@ -78,11 +78,18 @@ copy_credential_dir() {
   local files=("$src"/*)
   if [[ -d "$src" ]] && [[ -e "${files[1]}" ]]; then
     echo "Copying $name..."
+
     for f in "${files[@]}"; do
-      [[ -f "$f" ]] && cat "$f" | container exec -i "$NAME" tee "$dst/$(basename "$f")" > /dev/null
+      if [[ -f "$f" ]]; then
+        cat "$f" | container exec -i "$NAME" tee "$dst/$(basename "$f")" > /dev/null
+      elif [[ -d "$f" ]]; then
+        local dirname="$(basename "$f")"
+        container exec "$NAME" mkdir -p "$dst/$dirname"
+        tar -C "$src/$dirname" -cf - . 2>/dev/null | container exec -i "$NAME" tar -C "$dst/$dirname" -xf - 2>/dev/null || true
+      fi
     done
-    container exec "$NAME" chmod 700 "$dst"
-    container exec "$NAME" chmod 600 "$dst"/* 2>/dev/null || true
+
+    container exec "$NAME" sh -c "chmod 700 '$dst' && find '$dst' -type f -exec chmod 600 {} +"
   else
     echo "  (no $name found, skipping)"
   fi
