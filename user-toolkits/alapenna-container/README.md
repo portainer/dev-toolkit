@@ -118,8 +118,9 @@ git config --global user.signingkey <GPG_KEY_ID>
 ### 2. GitHub CLI Authentication (Browser-Based)
 
 After copying credentials, GitHub CLI authentication starts automatically:
-- Browser opens with a one-time code
-- Authorize the device in your browser
+- Browser opens on your Mac to https://github.com/login/device
+- A one-time code is displayed in the terminal
+- Enter the code in your browser to authorize
 - Authentication persists across container restarts
 
 Settings applied automatically:
