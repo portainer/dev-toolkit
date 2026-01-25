@@ -1,19 +1,23 @@
 #!/usr/bin/env zsh
 # devbox-apple - Container lifecycle manager using Apple container CLI
 #
-# Requires: macOS 26+ with Apple container CLI
+# Requires: macOS 26+ with Apple container CLI, zsh shell
 #
 # Install:
 #   cp devbox-apple ~/.local/bin/
 #   chmod +x ~/.local/bin/devbox-apple
 #
 # Usage:
-#   devbox-apple          # Enter the container (creates/starts if needed)
-#   devbox-apple stop     # Stop the container
-#   devbox-apple destroy  # Remove container
-#   devbox-apple status   # Show container status
-#   devbox-apple build    # Build the image
-#   devbox-apple logs     # Show container logs
+#   devbox-apple                      # Enter the container (creates/starts if needed)
+#   devbox-apple stop                 # Stop the container
+#   devbox-apple destroy              # Remove container
+#   devbox-apple status               # Show container status
+#   devbox-apple build                # Build the image
+#   devbox-apple build --keep-builder # Build and keep builder for faster rebuilds
+#   devbox-apple rebuild              # Destroy container and rebuild image
+#   devbox-apple builder-configure    # Configure builder resources (performance/balanced/light/max)
+#   devbox-apple logs                 # Show container logs
+#   devbox-apple help                 # Show detailed help
 
 set -e
 

@@ -2,18 +2,6 @@
 
 A development environment using Apple's native container CLI on macOS 26+.
 
-## Why Apple Container?
-
-| Feature | Docker/OrbStack | Apple Container |
-|---------|-----------------|-----------------|
-| Architecture | Shared Linux VM | VM-per-container |
-| Isolation | Shared kernel | Full VM isolation |
-| Host mounts | OrbStack auto-mounts /Users | Explicit only |
-| Startup | ~2 sec | ~0.7 sec |
-| Maintained by | Docker Inc / OrbStack | Apple |
-
-Each container runs in its own lightweight VM, providing true isolation without shared attack surfaces.
-
 ## Prerequisites
 
 - macOS 26 (Tahoe) or later
@@ -30,6 +18,10 @@ Verify installation:
 container --version
 container system status
 ```
+
+## Isolation Benefits
+
+Unlike OrbStack which [auto-mounts /Users and /Volumes](https://github.com/orbstack/orbstack/issues/169), Apple container only mounts what you explicitly configure. Each container runs in its own lightweight VM, providing true isolation without shared attack surfaces. This makes it suitable for running untrusted code (like AI agents) in a sandboxed environment.
 
 ## Install devbox-apple script
 
@@ -68,18 +60,27 @@ devbox-apple
 | `devbox-apple builder-configure [profile]` | Configure builder with preset profile (light/balanced/performance/max) |
 | `devbox-apple logs` | Show container logs |
 
-## Directory Mounts
+## Directory Configuration
 
-| Host | Container | Mode |
-|------|-----------|------|
+### Volume Mounts (Live-Synced)
+
+| Host | Container | Access |
+|------|-----------|--------|
 | `~/workspaces/toolkit-workspace` | `/workspace` | read-write |
-| `~/.ssh` | `/root/.ssh` | copied |
-| `~/.gnupg` | `/root/.gnupg` | copied |
 | `~/tmp/dev-toolkit` | `/share-tmp` | read-write |
 
-Note: SSH and GPG directories are copied into the container on first creation, not live-mounted from the host.
+These directories are mounted and changes sync immediately between host and container.
 
-Edit `devbox-apple` script to customize mount paths.
+### Copied Directories (One-Time)
+
+| Host | Container | When |
+|------|-----------|------|
+| `~/.ssh` | `/root/.ssh` | On first container creation |
+| `~/.gnupg` | `/root/.gnupg` | On first container creation |
+
+SSH and GPG credentials are copied into the container once during initial setup. Changes made inside the container won't affect your host credentials, and vice versa.
+
+**Note:** Edit the `devbox-apple` script to customize paths.
 
 ## Included Tools
 
@@ -88,7 +89,7 @@ Edit `devbox-apple` script to customize mount paths.
 - **Terminal**: zsh, starship, fzf, ripgrep, fd, bat, eza
 - **Files**: yazi, zoxide, glow
 - **Editor**: fresh
-- **AI**: Claude Code with plugins (claude-hud, plannotator on port 17777)
+- **AI**: Claude Code with plugins (claude-hud, plannotator)
 - **Scripts**: ccm (Claude commit message generator)
 
 ## Builder Configuration
@@ -119,21 +120,6 @@ devbox-apple builder-configure max          # 12 CPUs / 16g - Maximum (64GB Mac)
 
 **Profile persists** across builds until you change it or until auto-removal happens.
 
-**Mismatch warnings:** If an existing builder doesn't match the recommended `performance` profile, you'll be warned before the build starts.
-
-### Script Defaults
-
-The script default is the **performance** profile (8 CPUs / 8g) - this is the recommended configuration for optimal build speed.
-
-If you want to permanently use a different profile:
-
-1. Edit `devbox-apple` script
-2. Set `BUILDER_CPUS` and `BUILDER_MEMORY` to your preferred values
-   - Example: `BUILDER_CPUS=4` and `BUILDER_MEMORY="4g"` for balanced
-3. All new builders will use these defaults
-
-**Note:** The mismatch warning will always check against the performance profile (8 CPUs / 8g) regardless of script defaults, as this is the recommended configuration.
-
 ### Keeping Builder Between Builds
 
 During active Dockerfile development (frequent rebuilds), keep the builder to avoid recreation overhead:
@@ -144,16 +130,6 @@ devbox-apple rebuild --keep-builder  # Reuses existing builder (fast!)
 devbox-apple rebuild                 # Final build removes builder
 ```
 
-### Builder Behavior Summary
-
-| Scenario | Builder Action | Notes |
-|----------|----------------|-------|
-| First build | Creates with script defaults | Uses BUILDER_CPUS/BUILDER_MEMORY (performance profile) |
-| Build completes | Auto-removes (frees resources) | Unless `--keep-builder` used |
-| Existing builder found | Uses existing config | Warns if not performance profile (8 CPUs / 8g) |
-| `builder-configure` called | Replaces with new profile | Persists until auto-removed |
-| No profile specified | Uses performance | `devbox-apple builder-configure` → performance profile |
-
 ## Port Configuration
 
 The container exposes ports **10000-19999** (mapped 1:1 to host) to avoid conflicts with system services.
@@ -163,10 +139,6 @@ The container exposes ports **10000-19999** (mapped 1:1 to host) to avoid confli
 | Port | Service |
 |------|---------|
 | 17777 | Plannotator |
-
-## Isolation Benefits
-
-Unlike OrbStack which [auto-mounts /Users and /Volumes](https://github.com/orbstack/orbstack/issues/169), Apple container only mounts what you explicitly configure. This makes it suitable for running untrusted code (like AI agents) in a sandboxed environment.
 
 ## Known Limitations
 
@@ -195,24 +167,6 @@ container system status
 
 # View logs
 container system logs
-```
-
-### Image not found
-
-```bash
-# Build locally
-devbox-apple build
-
-# Or pull from registry (if published)
-container image pull your-registry/devbox:latest
-```
-
-### Permission errors on mounts
-
-Ensure the mount source directories exist and are readable:
-
-```bash
-mkdir -p ~/workspaces/toolkit-workspace ~/tmp/dev-toolkit
 ```
 
 ## References
