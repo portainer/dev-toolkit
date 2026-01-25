@@ -1,0 +1,489 @@
+#!/usr/bin/env zsh
+# devbox-apple - Container lifecycle manager using Apple container CLI
+#
+# Requires: macOS 26+ with Apple container CLI, zsh shell
+#
+# Install:
+#   cp devbox-apple ~/.local/bin/
+#   chmod +x ~/.local/bin/devbox-apple
+#
+# Usage:
+#   devbox-apple                      # Enter the container (creates/starts if needed)
+#   devbox-apple stop                 # Stop the container
+#   devbox-apple destroy              # Remove container
+#   devbox-apple status               # Show container status
+#   devbox-apple build                # Build the image
+#   devbox-apple build --keep-builder # Build and keep builder for faster rebuilds
+#   devbox-apple rebuild              # Destroy container and rebuild image
+#   devbox-apple builder-configure    # Configure builder resources (performance/balanced/light/max)
+#   devbox-apple logs                 # Show container logs
+#   devbox-apple help                 # Show detailed help
+
+set -e
+
+NAME="devbox-apple"
+IMAGE="devbox-apple:latest"
+
+# Paths (adjust to your setup)
+WORKSPACE_DIR="$HOME/workspaces/toolkit-workspace"
+SHARE_TMP="$HOME/tmp/dev-toolkit"
+
+# Source directories for initial copy (not mounted)
+SSH_DIR="$HOME/.ssh"
+GNUPG_DIR="$HOME/.gnupg"
+
+# Container configuration
+CONTAINER_CPUS=4
+CONTAINER_MEMORY="8g"
+
+# Builder configuration (default: performance profile)
+BUILDER_CPUS=8
+BUILDER_MEMORY="8g"
+
+check_container_cli() {
+  if ! command -v container &>/dev/null; then
+    echo "Apple container CLI not found."
+    echo "Requires macOS 26+ with container CLI installed."
+    echo "See: https://github.com/apple/container"
+    exit 1
+  fi
+}
+
+# Helper: Check if container is running
+container_is_running() {
+  container list 2>/dev/null | grep -q "^$NAME"
+}
+
+# Helper: Check if container exists (running or stopped)
+container_exists() {
+  container list --all 2>/dev/null | grep -q "^$NAME"
+}
+
+# Helper: Check if builder exists
+builder_exists() {
+  container builder status 2>/dev/null | grep -q "^buildkit"
+}
+
+# Helper: Get builder resources (cpus mem_gb)
+get_builder_resources() {
+  local builder="$1"
+  local cpus=$(echo "$builder" | awk '{print $5}')
+  local mem_mb=$(echo "$builder" | awk '{print $6}')
+  local mem_gb=$((mem_mb / 1024))
+  echo "$cpus $mem_gb"
+}
+
+# Helper: Copy credential directory into container
+copy_credential_dir() {
+  local src="$1"
+  local dst="$2"
+  local name="$3"
+
+  local files=("$src"/*)
+  if [[ -d "$src" ]] && [[ -e "${files[1]}" ]]; then
+    echo "Copying $name..."
+
+    for f in "${files[@]}"; do
+      if [[ -f "$f" ]]; then
+        cat "$f" | container exec -i "$NAME" tee "$dst/$(basename "$f")" > /dev/null
+      elif [[ -d "$f" ]]; then
+        local dirname="$(basename "$f")"
+        container exec "$NAME" mkdir -p "$dst/$dirname"
+        tar -C "$src/$dirname" -cf - . 2>/dev/null | container exec -i "$NAME" tar -C "$dst/$dirname" -xf - 2>/dev/null || true
+      fi
+    done
+
+    container exec "$NAME" sh -c "chmod 700 '$dst' && find '$dst' -type f -exec chmod 600 {} +"
+  else
+    echo "  (no $name found, skipping)"
+  fi
+}
+
+# Copy SSH and GPG keys into container (one-time setup)
+setup_credentials() {
+  # Create directories
+  container exec "$NAME" mkdir -p /root/.ssh /root/.gnupg
+
+  # Copy credentials
+  copy_credential_dir "$SSH_DIR" "/root/.ssh" "SSH keys"
+  copy_credential_dir "$GNUPG_DIR" "/root/.gnupg" "GPG keys"
+
+  echo "Credentials setup complete."
+}
+
+# Copy git config from host
+setup_git_config() {
+  local host_email=$(git config --global --get user.email 2>/dev/null)
+  local host_name=$(git config --global --get user.name 2>/dev/null)
+  local host_gpg_key=$(git config --global --get user.signingkey 2>/dev/null)
+
+  if [[ -n "$host_email" ]] && [[ -n "$host_name" ]]; then
+    echo "Copying git config from host..."
+    container exec "$NAME" git config --global user.email "$host_email"
+    container exec "$NAME" git config --global user.name "$host_name"
+    container exec "$NAME" git config --global push.autoSetupRemote true
+
+    if [[ -n "$host_gpg_key" ]]; then
+      container exec "$NAME" git config --global commit.gpgsign true
+      container exec "$NAME" git config --global user.signingkey "$host_gpg_key"
+    fi
+
+    echo "Git configured."
+  fi
+}
+
+# Setup GitHub CLI authentication
+setup_gh_auth() {
+  echo "Authenticating GitHub CLI..."
+  echo "Opening browser on your Mac..."
+  open https://github.com/login/device 2>/dev/null &
+  sleep 1
+  container exec -ti "$NAME" gh auth login --git-protocol ssh --web --skip-ssh-key
+}
+
+cmd_enter() {
+  check_container_cli
+
+  # Check if container exists and is running
+  if container_is_running; then
+    # Container exists, exec into it
+    exec container exec -ti "$NAME" /bin/zsh -l
+  fi
+
+  # Container doesn't exist, create and start it
+  echo "Creating container..."
+
+  # Ensure directories exist
+  mkdir -p "$WORKSPACE_DIR" "$SHARE_TMP"
+
+  # Build volume arguments
+  # Note: Single file mounting support merged (https://github.com/apple/containerization/pull/487)
+  # but not yet released in container CLI. When available (likely 0.9.0+), uncomment below:
+  #
+  # if [[ -S /var/run/docker.sock ]]; then
+  #   echo "✓ Docker socket detected - mounting for Docker CLI access"
+  #   VOLUME_ARGS+=(--volume "/var/run/docker.sock:/var/run/docker.sock")
+  # fi
+  local volume_args=(
+    --volume "$WORKSPACE_DIR:/workspace"
+    --volume "$SHARE_TMP:/share-tmp"
+  )
+
+  # Start container in detached mode
+  # Note: Apple container uses FIXED allocation per VM (not shared like OrbStack)
+  # Default is 1GB RAM / 4 CPUs - too low for dev work, so we override.
+  container run \
+    --name "$NAME" \
+    --detach \
+    --memory "$CONTAINER_MEMORY" \
+    --cpus "$CONTAINER_CPUS" \
+    --publish 10000-19999:10000-19999 \
+    "${volume_args[@]}" \
+    --ssh \
+    "$IMAGE"
+
+  # Wait for container to be ready
+  sleep 2
+
+  # Copy credentials on first creation
+  setup_credentials
+
+  # Copy git config from host
+  setup_git_config
+
+  # Setup GitHub CLI authentication
+  setup_gh_auth
+
+  # Enter the container
+  exec container exec -ti "$NAME" /bin/zsh -l
+}
+
+cmd_stop() {
+  check_container_cli
+
+  if container_is_running; then
+    echo "Stopping container..."
+    container stop "$NAME"
+    echo "Container stopped."
+  else
+    echo "Container not running."
+  fi
+}
+
+cmd_destroy() {
+  check_container_cli
+
+  if container_exists; then
+    echo "Removing container..."
+    container delete --force "$NAME"
+    echo "Container removed."
+  else
+    echo "Container does not exist."
+  fi
+}
+
+cmd_status() {
+  check_container_cli
+
+  echo "Container CLI: installed"
+  echo ""
+
+  if container_is_running; then
+    echo "Container: running"
+    container inspect "$NAME" 2>/dev/null | head -20
+  elif container_exists; then
+    echo "Container: stopped"
+  else
+    echo "Container: not created"
+  fi
+
+  echo ""
+  echo "Image:"
+  container image list 2>/dev/null | grep "$IMAGE" || echo "  (not built)"
+}
+
+cmd_build() {
+  check_container_cli
+
+  # Parse flags
+  local keep_builder=false
+  if [[ "$1" == "--keep-builder" ]]; then
+    keep_builder=true
+  fi
+
+  echo "Building image..."
+
+  # Check current builder status
+  if builder_exists; then
+    # Builder exists - use it (respect manual configuration)
+    local current_builder=$(container builder status 2>/dev/null | grep -E "^buildkit")
+    local resources=($(get_builder_resources "$current_builder"))
+    local current_cpus="${resources[1]}"
+    local current_mem_gb="${resources[2]}"
+    echo "Using existing builder: ${current_cpus} CPUs / ${current_mem_gb}g"
+
+    # Check for mismatch with recommended performance profile (8 CPUs / 8g)
+    local recommended_cpus=8
+    local recommended_mem_gb=8
+    if [[ "$current_cpus" != "$recommended_cpus" ]] || [[ "$current_mem_gb" != "$recommended_mem_gb" ]]; then
+      echo ""
+      echo "⚠️  WARNING: Builder doesn't match recommended performance profile"
+      echo "   Current:      ${current_cpus} CPUs / ${current_mem_gb}g"
+      echo "   Recommended:  ${recommended_cpus} CPUs / ${recommended_mem_gb}g (performance profile)"
+      echo ""
+      echo "Build may be slower than expected."
+      echo "To use recommended config, run: devbox-apple builder-configure performance"
+      echo ""
+      read "reply?Continue with current builder? [y/N] "
+      echo ""
+      if [[ ! $reply =~ ^[Yy]$ ]]; then
+        echo "Build cancelled."
+        exit 0
+      fi
+    fi
+  else
+    # No builder - create with script defaults
+    echo "No builder found, creating with defaults: ${BUILDER_CPUS} CPUs / ${BUILDER_MEMORY}"
+    container builder start --cpus "$BUILDER_CPUS" --memory "$BUILDER_MEMORY"
+    sleep 2
+  fi
+
+  echo ""
+
+  # Find the Dockerfile location
+  local script_dir="$(dirname "$0")"
+  local build_dir
+  if [[ -f "$script_dir/Dockerfile" ]]; then
+    build_dir="$script_dir"
+  elif [[ -f "./Dockerfile" ]]; then
+    build_dir="."
+  else
+    echo "Dockerfile not found. Run from the toolkit directory."
+    exit 1
+  fi
+
+  # Build the image
+  container build --tag "$IMAGE" "$build_dir"
+  echo ""
+  echo "Image built: $IMAGE"
+
+  # Auto-remove builder unless --keep-builder flag
+  if [[ "$keep_builder" == false ]]; then
+    echo ""
+    echo "Removing builder to free resources..."
+    echo "(Use --keep-builder flag to keep builder for faster subsequent builds)"
+    container builder delete --force 2>/dev/null || true
+  fi
+}
+
+cmd_rebuild() {
+  check_container_cli
+
+  echo "Rebuilding container (destroy + build)..."
+  echo ""
+
+  # Destroy existing container (auto-stops if needed)
+  cmd_destroy
+  echo ""
+
+  # Build new image (pass through any flags like --keep-builder)
+  cmd_build "$@"
+}
+
+cmd_logs() {
+  check_container_cli
+
+  if container_exists; then
+    container logs "$NAME"
+  else
+    echo "Container does not exist."
+  fi
+}
+
+cmd_builder_configure() {
+  check_container_cli
+
+  local profile="${1:-performance}"
+  local cpus memory
+
+  # Map profile to resources
+  case "$profile" in
+    light)
+      cpus=2
+      memory="2g"
+      ;;
+    balanced)
+      cpus=4
+      memory="4g"
+      ;;
+    performance)
+      cpus=8
+      memory="8g"
+      ;;
+    max)
+      cpus=12
+      memory="16g"
+      ;;
+    *)
+      echo "Error: Unknown profile '$profile'"
+      echo ""
+      echo "Available profiles:"
+      echo "  light        2 CPUs / 2g   - Minimal resource use"
+      echo "  balanced     4 CPUs / 4g   - Good for most builds"
+      echo "  performance  8 CPUs / 8g   - Fast builds (recommended)"
+      echo "  max          12 CPUs / 16g - Maximum performance"
+      echo ""
+      echo "Usage: devbox-apple builder-configure [profile]"
+      echo "Example: devbox-apple builder-configure performance"
+      exit 1
+      ;;
+  esac
+
+  echo "Configuring builder: ${profile} profile (${cpus} CPUs / ${memory})"
+  echo ""
+
+  # Stop and remove existing builder
+  if builder_exists; then
+    echo "Removing existing builder..."
+    container builder delete --force
+    echo ""
+  fi
+
+  # Start with new configuration
+  echo "Starting builder with ${cpus} CPUs / ${memory}..."
+  container builder start --cpus "$cpus" --memory "$memory"
+
+  echo ""
+  echo "Builder configured successfully."
+  echo ""
+  echo "To make this permanent, edit the script and set:"
+  echo "  BUILDER_CPUS=${cpus}"
+  echo "  BUILDER_MEMORY=\"${memory}\""
+}
+
+cmd_help() {
+  echo "devbox-apple - Container lifecycle manager (Apple container)"
+  echo ""
+  echo "Usage: devbox-apple [command] [options]"
+  echo ""
+  echo "Commands:"
+  echo "  (none)              Enter the container (creates if needed)"
+  echo "  stop                Stop the container"
+  echo "  destroy             Remove the container"
+  echo "  status              Show container and image status"
+  echo "  build               Build the container image"
+  echo "  rebuild             Destroy container and rebuild image"
+  echo "  logs                Show container logs"
+  echo "  builder-configure   Configure builder resources with preset profiles"
+  echo "  help                Show this help"
+  echo ""
+  echo "Build Options:"
+  echo "  --keep-builder      Don't remove builder after build (faster rebuilds)"
+  echo ""
+  echo "Builder Profiles:"
+  echo "  performance  8 CPUs / 8g   - Fast builds (recommended, default)"
+  echo "  light        2 CPUs / 2g   - Minimal resource use"
+  echo "  balanced     4 CPUs / 4g   - Good for most builds"
+  echo "  max          12 CPUs / 16g - Maximum performance"
+  echo ""
+  echo "  Usage: devbox-apple builder-configure [profile]"
+  echo "  Default: devbox-apple builder-configure  (uses performance)"
+  echo ""
+  echo "Container Resources:"
+  echo "  CPUs:    $CONTAINER_CPUS"
+  echo "  Memory:  $CONTAINER_MEMORY"
+  echo ""
+  echo "Builder Resources (current script default):"
+  echo "  CPUs:    $BUILDER_CPUS"
+  echo "  Memory:  $BUILDER_MEMORY"
+  echo "  Auto-remove after build: yes (use --keep-builder to prevent)"
+  echo ""
+  echo "Mounted:"
+  echo "  $WORKSPACE_DIR -> /workspace"
+  echo "  $SHARE_TMP -> /share-tmp"
+  echo ""
+  echo "Note: Docker socket mounting not supported yet (coming soon)"
+  echo ""
+  echo "Ports:"
+  echo "  10000-19999 (mapped 1:1)"
+  echo ""
+  echo "Note: SSH/GPG keys are copied on first creation (not mounted)"
+}
+
+case "${1:-}" in
+  ""|enter)
+    cmd_enter
+    ;;
+  stop)
+    cmd_stop
+    ;;
+  destroy)
+    cmd_destroy
+    ;;
+  status)
+    cmd_status
+    ;;
+  build)
+    shift
+    cmd_build "$@"
+    ;;
+  rebuild)
+    shift
+    cmd_rebuild "$@"
+    ;;
+  logs)
+    cmd_logs
+    ;;
+  builder-configure)
+    shift
+    cmd_builder_configure "$@"
+    ;;
+  help|--help|-h)
+    cmd_help
+    ;;
+  *)
+    echo "Unknown command: $1"
+    cmd_help
+    exit 1
+    ;;
+esac
