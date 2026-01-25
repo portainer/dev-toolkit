@@ -111,6 +111,27 @@ setup_credentials() {
   echo "Credentials setup complete."
 }
 
+# Copy git config from host
+setup_git_config() {
+  local host_email=$(git config --global --get user.email 2>/dev/null)
+  local host_name=$(git config --global --get user.name 2>/dev/null)
+  local host_gpg_key=$(git config --global --get user.signingkey 2>/dev/null)
+
+  if [[ -n "$host_email" ]] && [[ -n "$host_name" ]]; then
+    echo "Copying git config from host..."
+    container exec "$NAME" git config --global user.email "$host_email"
+    container exec "$NAME" git config --global user.name "$host_name"
+    container exec "$NAME" git config --global push.autoSetupRemote true
+
+    if [[ -n "$host_gpg_key" ]]; then
+      container exec "$NAME" git config --global commit.gpgsign true
+      container exec "$NAME" git config --global user.signingkey "$host_gpg_key"
+    fi
+
+    echo "Git configured."
+  fi
+}
+
 cmd_enter() {
   check_container_cli
 
@@ -157,6 +178,9 @@ cmd_enter() {
 
   # Copy credentials on first creation
   setup_credentials
+
+  # Copy git config from host
+  setup_git_config
 
   # Enter the container
   exec container exec -ti "$NAME" /bin/zsh -l
