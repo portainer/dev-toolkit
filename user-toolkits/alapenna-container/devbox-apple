@@ -135,6 +135,9 @@ setup_git_config() {
 # Setup GitHub CLI authentication
 setup_gh_auth() {
   echo "Authenticating GitHub CLI..."
+  echo "Opening browser on your Mac..."
+  open https://github.com/login/device 2>/dev/null &
+  sleep 1
   container exec -ti "$NAME" gh auth login --git-protocol ssh --web --skip-ssh-key
 }
 
