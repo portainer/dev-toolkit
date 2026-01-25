@@ -76,7 +76,7 @@ copy_credential_dir() {
   local name="$3"
 
   local files=("$src"/*)
-  if [[ -d "$src" ]] && [[ -e "${files[0]}" ]]; then
+  if [[ -d "$src" ]] && [[ -e "${files[1]}" ]]; then
     echo "Copying $name..."
     for f in "${files[@]}"; do
       [[ -f "$f" ]] && cat "$f" | container exec -i "$NAME" tee "$dst/$(basename "$f")" > /dev/null

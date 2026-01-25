@@ -208,6 +208,7 @@ RUN cat > $HOME/.claude/settings.json <<'EOF'
     "deny": [
       "Read(**/.env*)",
       "Read(~/.ssh/**)",
+      "Read(~/.gnupg/**)",
       "Read(~/.docker/**)"
     ]
   }
