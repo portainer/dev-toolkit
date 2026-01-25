@@ -132,6 +132,12 @@ setup_git_config() {
   fi
 }
 
+# Setup GitHub CLI authentication
+setup_gh_auth() {
+  echo "Authenticating GitHub CLI..."
+  container exec -ti "$NAME" gh auth login --git-protocol ssh --web --skip-ssh-key
+}
+
 cmd_enter() {
   check_container_cli
 
@@ -181,6 +187,9 @@ cmd_enter() {
 
   # Copy git config from host
   setup_git_config
+
+  # Setup GitHub CLI authentication
+  setup_gh_auth
 
   # Enter the container
   exec container exec -ti "$NAME" /bin/zsh -l

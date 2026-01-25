@@ -82,6 +82,61 @@ SSH and GPG credentials are copied into the container once during initial setup.
 
 **Note:** Edit the `devbox-apple` script to customize paths.
 
+## First Time Setup
+
+On first container creation, setup runs automatically in this order:
+
+### 1. Automatic Configuration (No Interaction)
+
+**Git Identity & Signing:**
+- `user.email` - copied from host
+- `user.name` - copied from host
+- `user.signingkey` - copied from host (if configured)
+- `commit.gpgsign` - enabled if signing key exists
+- `push.autoSetupRemote` - enabled automatically
+
+**Credentials:**
+- SSH keys from `~/.ssh` - copied to container
+- GPG keys from `~/.gnupg` - copied to container
+
+**Requirements on Host Mac:**
+
+Ensure your host Mac has git configured before creating the container:
+
+```bash
+# Verify your host git config
+git config --global user.email
+git config --global user.name
+git config --global user.signingkey
+
+# If missing, configure on your Mac:
+git config --global user.email "you@example.com"
+git config --global user.name "Your Name"
+git config --global user.signingkey <GPG_KEY_ID>
+```
+
+### 2. GitHub CLI Authentication (Browser-Based)
+
+After copying credentials, GitHub CLI authentication starts automatically:
+- Browser opens with a one-time code
+- Authorize the device in your browser
+- Authentication persists across container restarts
+
+Settings applied automatically:
+- Git protocol: SSH
+- SSH key upload: Skipped (keys already copied from host)
+
+### 3. Claude Code Authentication (First Use)
+
+Authenticate Claude Code the first time you run it:
+
+```bash
+claude
+# Follow the authentication prompts
+```
+
+Authentication persists across container restarts.
+
 ## Included Tools
 
 - **Languages**: Go, Node.js, Yarn (from base image)
