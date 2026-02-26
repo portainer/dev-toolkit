@@ -68,8 +68,9 @@ devbox-apple
 |------|-----------|--------|
 | `~/workspaces/toolkit-workspace` | `/workspace` | read-write |
 | `~/tmp/dev-toolkit` | `/share-tmp` | read-write |
+| `/var/run/docker.sock` | `/var/run/docker.sock` | read-write (auto-detected) |
 
-These directories are mounted and changes sync immediately between host and container.
+These directories are mounted and changes sync immediately between host and container. The Docker socket is mounted automatically when detected on the host.
 
 ### Copied Directories (One-Time)
 
@@ -201,12 +202,9 @@ The container exposes ports **10000-19999** (mapped 1:1 to host) to avoid confli
 - **No snapshots yet**: The `container` CLI doesn't expose VM snapshot/restore (though Virtualization.framework supports it)
 - **Pre-1.0**: API may change between versions
 - **Image unpacking**: Can be slow for large images
-- **No Docker socket mounting (yet)**: Single file/socket mounting [was merged](https://github.com/apple/containerization/pull/487) on 2026-01-23 but not yet released (current: 0.8.0). Expected in a future release. Until then, use Docker CLI from your host Mac instead of inside the container
+- **Docker socket cross-volume caveat**: Docker socket mounting works via [single file mount support](https://github.com/apple/containerization/pull/487). Since sockets use kernel IPC (not file I/O), the cross-volume write limitation does not apply
 
 ## Future Enhancements
-
-Coming in next container CLI release:
-- Docker socket mounting (merged, awaiting release - see Known Limitations)
 
 Potential wrapper features to build:
 - Snapshot/restore via Swift (using Virtualization.framework APIs)
