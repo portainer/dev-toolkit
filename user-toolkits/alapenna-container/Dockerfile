@@ -2,6 +2,11 @@ FROM portainer/dev-toolkit:2025.12
 
 ENV HOME=/root
 ENV TERM=xterm-256color
+ENV COLORTERM=truecolor
+ENV EDITOR=fresh
+ENV FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
+ENV PLANNOTATOR_REMOTE=1
+ENV PLANNOTATOR_PORT=17777
 
 # Detect architecture for binary downloads
 ARG TARGETARCH
@@ -266,17 +271,6 @@ bindkey '^[[B' history-substring-search-down
 
 # fzf keybindings (Ctrl+R history, Ctrl+T files, Alt+C cd)
 source /usr/share/fzf/key-bindings.zsh
-
-# ----------------------------------------
-# Environment
-# ----------------------------------------
-export PATH="$HOME/.local/bin:$PATH"
-export EDITOR="fresh"
-export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
-
-# Plannotator (devcontainer mode on port 17777)
-export PLANNOTATOR_REMOTE=1
-export PLANNOTATOR_PORT=17777
 
 # ----------------------------------------
 # Tool integrations
