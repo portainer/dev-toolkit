@@ -163,9 +163,14 @@ cmd_enter() {
   )
 
   # Mount Docker socket if available on host
+  # /var/run/docker.sock is typically a symlink (OrbStack: ~/.orbstack/run/docker.sock,
+  # Docker Desktop: ~/.docker/run/docker.sock). Apple container's single-file mount
+  # cannot follow the symlink, so resolve to the real path before mounting.
   if [[ -S /var/run/docker.sock ]]; then
-    echo "Docker socket detected - mounting for Docker CLI access"
-    volume_args+=(--volume "/var/run/docker.sock:/var/run/docker.sock")
+    local docker_sock_src
+    docker_sock_src=$(readlink -f /var/run/docker.sock 2>/dev/null || echo /var/run/docker.sock)
+    echo "Docker socket detected at $docker_sock_src - mounting for Docker CLI access"
+    volume_args+=(--volume "$docker_sock_src:/var/run/docker.sock")
   fi
 
   # Start container in detached mode
