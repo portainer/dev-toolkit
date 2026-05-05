@@ -1,4 +1,4 @@
-FROM portainer/dev-toolkit:2025.12
+FROM portainer/dev-toolkit:2026.05
 
 ENV HOME=/root
 ENV TERM=xterm-256color
