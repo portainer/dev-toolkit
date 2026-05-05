@@ -8,10 +8,10 @@ The Portainer dev-toolkit is a containerized development environment for Portain
 
 ## Installed Tools
 
-- **Go** (v1.25.1) - Portainer backend development
-- **Docker CLI** (v28.4.0) - Container management via mounted host socket
-- **Node.js** (v18.20.4) + **Yarn** (v1.22.22) - Portainer frontend development
-- **golangci-lint** (v2.4.0) - Go code linting
+- **Go** (v1.26.2) - Portainer backend development
+- **Docker CLI** (v29.4.2) + **Docker Compose** (v5.1.3) - Container management via mounted host socket
+- **Node.js** (v24.15.0) + **Yarn** (v1.22.22) - Portainer frontend development
+- **golangci-lint** (v2.12.1) - Go code linting
 
 ## Build Commands
 
@@ -63,13 +63,13 @@ GitHub Actions workflow builds multi-arch images (amd64, arm64) on tag push and 
 ## Creating Custom Toolkits
 
 1. Reference `examples/zsh/Dockerfile` or `user-toolkits/alapenna/Dockerfile` as starting points
-2. Create a Dockerfile extending `portainer/dev-toolkit:2025.12`
+2. Create a Dockerfile extending `portainer/dev-toolkit:2026.05`
 3. Build: `docker buildx build -t my-devkit -f path/to/Dockerfile .`
 4. Update `devcontainer.json` image field to use your custom image
 
 ## Version Management
 
-Current version: `VERSION=2025.09` in Makefile. Releasing:
+Current version: `VERSION=2026.05` in Makefile. Releasing:
 1. Update VERSION in Makefile
 2. Create and push a git tag matching the version
 3. GitHub Actions automatically builds and pushes multi-arch images to DockerHub

@@ -2,11 +2,11 @@ FROM ubuntu:24.04
 
 ARG TARGETOS
 ARG TARGETARCH
-ARG GO_VERSION=1.25.5
-ARG GOLANGCI_LINT_VERSION=v2.7.1
-ARG DOCKER_VERSION=28.4.0
-ARG DOCKER_COMPOSE_VERSION=2.39.3
-ARG NODE_VERSION=22.21.1
+ARG GO_VERSION=1.26.2
+ARG GOLANGCI_LINT_VERSION=v2.12.1
+ARG DOCKER_VERSION=29.4.2
+ARG DOCKER_COMPOSE_VERSION=5.1.3
+ARG NODE_VERSION=24.15.0
 ARG YARN_VERSION=1.22.22
 
 EXPOSE 8000 8999 9000 9443
@@ -72,10 +72,10 @@ RUN cd /tmp \
     && rm -f ${GO_PACKAGE}.tar.gz
 
 # Install golangci-lint
-RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /root/go/bin ${GOLANGCI_LINT_VERSION}
+RUN curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b /root/go/bin ${GOLANGCI_LINT_VERSION}
 
 # Install NodeJS and Yarn
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash \
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash \
     && export NVM_DIR="$HOME/.nvm" \
     && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" \
     && nvm install ${NODE_VERSION} \

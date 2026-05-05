@@ -1,4 +1,4 @@
-FROM portainer/dev-toolkit:2025.12
+FROM portainer/dev-toolkit:2026.05
 
 # Create a specific folder for Git configurations
 RUN mkdir -p /root/.config/git
