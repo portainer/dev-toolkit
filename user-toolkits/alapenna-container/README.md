@@ -66,7 +66,7 @@ devbox-apple
 
 | Host | Container | Access |
 |------|-----------|--------|
-| `~/workspaces/toolkit-workspace` | `/workspace` | read-write |
+| `~/workspaces/applecntr-workspace` | `/workspace` | read-write |
 | `~/tmp/dev-toolkit` | `/share-tmp` | read-write |
 | `/var/run/docker.sock` | `/var/run/docker.sock` | read-write (auto-detected) |
 

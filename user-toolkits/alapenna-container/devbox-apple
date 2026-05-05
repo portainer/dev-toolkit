@@ -25,7 +25,7 @@ NAME="devbox-apple"
 IMAGE="devbox-apple:latest"
 
 # Paths (adjust to your setup)
-WORKSPACE_DIR="$HOME/workspaces/toolkit-workspace"
+WORKSPACE_DIR="$HOME/workspaces/applecntr-workspace"
 SHARE_TMP="$HOME/tmp/dev-toolkit"
 
 # Source directories for initial copy (not mounted)
