@@ -58,7 +58,7 @@ truncate_to_repo = false
 
 [hostname]
 ssh_only = false
-format = "[ @ $hostname]($style)"
+format = "[@ $hostname]($style)"
 style = "yellow bold"
 
 [git_branch]
