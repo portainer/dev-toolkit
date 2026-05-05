@@ -5,8 +5,6 @@ ENV TERM=xterm-256color
 ENV COLORTERM=truecolor
 ENV EDITOR=fresh
 ENV FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
-ENV PLANNOTATOR_REMOTE=1
-ENV PLANNOTATOR_PORT=17777
 
 # Detect architecture for binary downloads
 ARG TARGETARCH
@@ -157,20 +155,17 @@ RUN GLOW_VERSION=$(curl -s "https://api.github.com/repos/charmbracelet/glow/rele
     && rm -rf glow.tar.gz glow_*
 
 # ============================================
-# Claude Code + Plannotator CLI
+# Claude Code
 # ============================================
-RUN curl -fsSL https://claude.ai/install.sh | bash \
-    && curl -fsSL https://plannotator.ai/install.sh | bash
+RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # ============================================
 # Claude Code plugins (via CLI)
 # ============================================
 ENV PATH="/root/.local/bin:${PATH}"
 RUN claude plugin marketplace add jarrodwatts/claude-hud \
-    && claude plugin marketplace add backnotprop/plannotator \
     && claude plugin marketplace add anthropics/claude-plugins-official \
     && claude plugin install claude-hud \
-    && claude plugin install plannotator@plannotator \
     && claude plugin install typescript-lsp@claude-plugins-official \
     && claude plugin install gopls-lsp@claude-plugins-official
 
@@ -205,10 +200,8 @@ RUN cat > $HOME/.claude/settings.json <<'EOF'
     "command": "node \"$(ls -td ~/.claude/plugins/cache/claude-hud/claude-hud/*/ 2>/dev/null | head -1)dist/index.js\""
   },
   "enabledPlugins": {
-    "claude-hud@claude-hud": true,
-    "plannotator@plannotator": true
+    "claude-hud@claude-hud": true
   },
-  "alwaysThinkingEnabled": true,
   "permissions": {
     "deny": [
       "Read(**/.env*)",

@@ -146,7 +146,7 @@ Authentication persists across container restarts.
 - **Terminal**: zsh, starship, fzf, ripgrep, fd, bat, eza
 - **Files**: yazi, zoxide, glow
 - **Editor**: fresh
-- **AI**: Claude Code with plugins (claude-hud, plannotator)
+- **AI**: Claude Code with plugins (claude-hud)
 - **Scripts**: ccm (Claude commit message generator)
 
 ## Builder Configuration
@@ -190,12 +190,6 @@ devbox-apple rebuild                 # Final build removes builder
 ## Port Configuration
 
 The container exposes ports **10000-19999** (mapped 1:1 to host) to avoid conflicts with system services.
-
-### Pre-configured Services
-
-| Port | Service |
-|------|---------|
-| 17777 | Plannotator |
 
 ## Known Limitations
 
