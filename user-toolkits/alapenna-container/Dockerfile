@@ -285,6 +285,7 @@ alias cat="bat --paging=never"
 alias l="eza -la --icons"
 alias br='fzf --preview "bat --color=always {}"'
 alias gp="git push"
+alias cl="claude --dangerously-skip-permissions"
 
 dir() { eza --tree --level="${1:-1}" --icons; }
 
@@ -314,6 +315,7 @@ ha() {
 
   Productivity
     ccm         Claude commit message
+    cl          Claude (skip permissions)
 "
 }
 
