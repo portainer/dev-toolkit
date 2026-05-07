@@ -5,6 +5,8 @@ ENV TERM=xterm-256color
 ENV COLORTERM=truecolor
 ENV EDITOR=fresh
 ENV FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
+# Allows `claude --dangerously-skip-permissions` when running as root inside the container
+ENV IS_SANDBOX=1
 
 # Detect architecture for binary downloads
 ARG TARGETARCH
