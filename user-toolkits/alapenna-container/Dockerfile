@@ -170,7 +170,8 @@ RUN claude plugin marketplace add jarrodwatts/claude-hud \
     && claude plugin marketplace add anthropics/claude-plugins-official \
     && claude plugin install claude-hud \
     && claude plugin install typescript-lsp@claude-plugins-official \
-    && claude plugin install gopls-lsp@claude-plugins-official
+    && claude plugin install gopls-lsp@claude-plugins-official \
+    && claude plugin install skill-creator@claude-plugins-official
 
 # Claude Code config files
 RUN mkdir -p $HOME/.claude/plugins/claude-hud \
