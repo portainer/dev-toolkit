@@ -1,7 +1,7 @@
 # Note: these can be overriden on the command line e.g. `make VERSION=2026.05`
 VERSION=2026.05
 
-.PHONY: base-amd64 base-arm64 base alapenna alapenna-ghostty
+.PHONY: base-amd64 base-arm64 base alapenna alapenna-ghostty alapenna-container
 
 base-amd64:
 	docker build --push --platform=linux/amd64 -t portainer/dev-toolkit:$(VERSION)-amd64 -f Dockerfile .
@@ -22,3 +22,11 @@ alapenna:
 
 alapenna-ghostty:
 	docker build --platform=linux/arm64 -t portainer-dev-toolkit:alapenna-ghostty -f user-toolkits/alapenna-ghostty/Dockerfile .
+
+# Install/update the devbox-apple script into ~/.local/bin and rebuild the image.
+# Requires Apple's `container` CLI (macOS 26+ on Apple Silicon).
+alapenna-container:
+	mkdir -p $(HOME)/.local/bin
+	cp user-toolkits/alapenna-container/devbox-apple $(HOME)/.local/bin/devbox-apple
+	chmod +x $(HOME)/.local/bin/devbox-apple
+	$(HOME)/.local/bin/devbox-apple build
