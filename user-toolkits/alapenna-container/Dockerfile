@@ -168,10 +168,12 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 ENV PATH="/root/.local/bin:${PATH}"
 RUN claude plugin marketplace add jarrodwatts/claude-hud \
     && claude plugin marketplace add anthropics/claude-plugins-official \
+    && claude plugin marketplace add deviantony/claude-plugins \
     && claude plugin install claude-hud \
     && claude plugin install typescript-lsp@claude-plugins-official \
     && claude plugin install gopls-lsp@claude-plugins-official \
-    && claude plugin install skill-creator@claude-plugins-official
+    && claude plugin install skill-creator@claude-plugins-official \
+    && claude plugin install cdx@deviantony-plugins
 
 # Claude Code config files
 RUN mkdir -p $HOME/.claude/plugins/claude-hud \
