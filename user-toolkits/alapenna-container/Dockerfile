@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq \
     lsof \
     unzip \
+    gnupg \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf $(which fdfind) /usr/local/bin/fd \
     && ln -sf $(which batcat) /usr/local/bin/bat \
