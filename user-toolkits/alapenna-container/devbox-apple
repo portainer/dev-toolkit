@@ -40,12 +40,40 @@ CONTAINER_MEMORY="8g"
 BUILDER_CPUS=8
 BUILDER_MEMORY="8g"
 
+# Network configuration (see setup_network for the why)
+NETWORK_NAME="devbox-apple-net"
+NETWORK_SUBNET="192.168.100.0/24"
+
 check_container_cli() {
   if ! command -v container &>/dev/null; then
     echo "Apple container CLI not found."
     echo "Requires macOS 26+ with container CLI installed."
     echo "See: https://github.com/apple/container"
     exit 1
+  fi
+}
+
+# Ensure an IPv4-only network exists for the container.
+#
+# Apple's `container` runtime (apple/container) assigns an IPv6 ULA to eth0
+# via SLAAC but does NOT install an IPv6 default route — NAT66 is not yet
+# implemented (see https://github.com/apple/container/issues/1034). Any IPv6
+# egress outside the local /64 returns ENETUNREACH. Tools with weak Happy
+# Eyeballs fallback (notably Node's undici/fetch, which powers corepack,
+# npm, pnpm) pick the IPv6 candidate and hang to timeout instead of
+# retrying over IPv4. curl is fine; node fetch is not.
+#
+# Fix: run the container on a network created without --subnet-v6, which
+# makes apple/container skip IPv6 assignment entirely. This mirrors how
+# OrbStack's eth0 has no IPv6 globals at all, so getaddrinfo never returns
+# AAAA candidates (RFC 6724 source-address selection).
+#
+# Remove this and revert to the default network once apple/container ships
+# working NAT66 / IPv6 egress.
+setup_network() {
+  if ! container network list --quiet 2>/dev/null | grep -q "^${NETWORK_NAME}$"; then
+    echo "Creating IPv4-only network: ${NETWORK_NAME} (${NETWORK_SUBNET})"
+    container network create "${NETWORK_NAME}" --subnet "${NETWORK_SUBNET}"
   fi
 }
 
@@ -153,6 +181,9 @@ cmd_enter() {
   # Container doesn't exist, create and start it
   echo "Creating container..."
 
+  # Ensure IPv4-only network exists (works around apple/container IPv6 egress bug)
+  setup_network
+
   # Ensure directories exist
   mkdir -p "$WORKSPACE_DIR" "$SHARE_TMP"
 
@@ -181,6 +212,7 @@ cmd_enter() {
     --detach \
     --memory "$CONTAINER_MEMORY" \
     --cpus "$CONTAINER_CPUS" \
+    --network "$NETWORK_NAME" \
     --publish 10000-19999:10000-19999 \
     "${volume_args[@]}" \
     --ssh \

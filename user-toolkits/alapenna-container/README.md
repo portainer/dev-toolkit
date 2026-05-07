@@ -197,6 +197,7 @@ The container exposes ports **10000-19999** (mapped 1:1 to host) to avoid confli
 - **Pre-1.0**: API may change between versions
 - **Image unpacking**: Can be slow for large images
 - **Docker socket cross-volume caveat**: Docker socket mounting works via [single file mount support](https://github.com/apple/containerization/pull/487). Since sockets use kernel IPC (not file I/O), the cross-volume write limitation does not apply
+- **IPv4-only network workaround**: `devbox-apple` creates and uses a dedicated IPv4-only network (`devbox-apple-net`, `192.168.100.0/24`) instead of the default network. Apple's `container` runtime assigns IPv6 ULAs via SLAAC but doesn't install an IPv6 default route — NAT66 is not yet implemented (see [apple/container#1034](https://github.com/apple/container/issues/1034)). Without this workaround, tools with weak Happy Eyeballs fallback (notably Node's `fetch`/`undici`, used by corepack/npm/pnpm) hang to timeout on IPv6 instead of retrying over IPv4. Remove the workaround once apple/container ships working IPv6 egress.
 
 ## Future Enhancements
 
