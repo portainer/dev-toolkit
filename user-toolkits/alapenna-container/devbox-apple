@@ -294,15 +294,20 @@ cmd_build() {
 
   echo ""
 
-  # Find the Dockerfile location
+  # Find the Dockerfile location.
+  # Reject any Dockerfile that doesn't extend the base toolkit image — otherwise
+  # running `devbox-apple build` from a directory containing the base Dockerfile
+  # (e.g. the repo root) would silently build the wrong image.
   local script_dir="$(dirname "$0")"
   local build_dir
-  if [[ -f "$script_dir/Dockerfile" ]]; then
+  if [[ -f "$script_dir/Dockerfile" ]] && grep -q "^FROM portainer/dev-toolkit" "$script_dir/Dockerfile"; then
     build_dir="$script_dir"
-  elif [[ -f "./Dockerfile" ]]; then
+  elif [[ -f "./Dockerfile" ]] && grep -q "^FROM portainer/dev-toolkit" "./Dockerfile"; then
     build_dir="."
   else
-    echo "Dockerfile not found. Run from the toolkit directory."
+    echo "Error: alapenna-container Dockerfile not found." >&2
+    echo "Run \`devbox-apple build\` from user-toolkits/alapenna-container/," >&2
+    echo "or \`make alapenna-container\` from the repo root." >&2
     exit 1
   fi
 

@@ -29,4 +29,4 @@ alapenna-container:
 	mkdir -p $(HOME)/.local/bin
 	cp user-toolkits/alapenna-container/devbox-apple $(HOME)/.local/bin/devbox-apple
 	chmod +x $(HOME)/.local/bin/devbox-apple
-	$(HOME)/.local/bin/devbox-apple build
+	cd user-toolkits/alapenna-container && $(HOME)/.local/bin/devbox-apple build
