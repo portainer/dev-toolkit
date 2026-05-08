@@ -13,6 +13,15 @@ ARG TARGETARCH
 
 # ============================================
 # System packages (combined, with cleanup)
+#
+# Grouped by purpose:
+#   - Shell/CLI ergonomics: zsh, fzf, ripgrep, fd-find, bat, jq, lsof, file
+#   - Networking + archive: wget, curl, unzip
+#   - Git signing: gnupg
+#   - Swift toolchain runtime/build deps (per swift.org Ubuntu 24.04 list)
+#     installed alongside swiftly further down. libcurl/libxml2/libz3/libedit
+#     are linked by the toolchain; libgcc-13/libstdc++-13/libc6 supply the
+#     C++ runtime; libpython3 is needed for lldb's Python bindings.
 # ============================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
     zsh \
@@ -28,6 +37,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     lsof \
     unzip \
     gnupg \
+    binutils \
+    libc6-dev \
+    libcurl4-openssl-dev \
+    libedit2 \
+    libgcc-13-dev \
+    libncurses-dev \
+    libpython3-dev \
+    libsqlite3-0 \
+    libstdc++-13-dev \
+    libxml2-dev \
+    libz3-dev \
+    pkg-config \
+    tzdata \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf $(which fdfind) /usr/local/bin/fd \
     && ln -sf $(which batcat) /usr/local/bin/bat \
@@ -158,6 +181,26 @@ RUN GLOW_VERSION=$(curl -s "https://api.github.com/repos/charmbracelet/glow/rele
     && rm -rf glow.tar.gz glow_*
 
 # ============================================
+# Swift toolchain (via swiftly)
+# Latest stable toolchain. System deps are in the apt block at the top.
+# --no-modify-profile: we manage .zshrc ourselves; the SWIFTLY_* ENV vars
+# below replace the env.sh that swiftly would otherwise source from a
+# profile file. Toolchain binaries (swift, swiftc, lldb…) are symlinked
+# into SWIFTLY_BIN_DIR (/root/.local/bin), which we put on PATH.
+# ============================================
+ENV SWIFTLY_HOME_DIR=/root/.local/share/swiftly
+ENV SWIFTLY_BIN_DIR=/root/.local/bin
+ENV SWIFTLY_TOOLCHAINS_DIR=/root/.local/share/swiftly/toolchains
+ENV PATH="${SWIFTLY_BIN_DIR}:${PATH}"
+
+RUN ARCH=$(uname -m) \
+    && cd /tmp \
+    && curl -fsSLO "https://download.swift.org/swiftly/linux/swiftly-${ARCH}.tar.gz" \
+    && tar -xzf "swiftly-${ARCH}.tar.gz" \
+    && ./swiftly init --assume-yes --quiet-shell-followup --no-modify-profile \
+    && rm -rf "swiftly-${ARCH}.tar.gz" swiftly LICENSE.txt
+
+# ============================================
 # Claude Code
 # ============================================
 RUN curl -fsSL https://claude.ai/install.sh | bash
@@ -165,7 +208,6 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # ============================================
 # Claude Code plugins (via CLI)
 # ============================================
-ENV PATH="/root/.local/bin:${PATH}"
 RUN claude plugin marketplace add jarrodwatts/claude-hud \
     && claude plugin marketplace add anthropics/claude-plugins-official \
     && claude plugin marketplace add deviantony/claude-plugins \
