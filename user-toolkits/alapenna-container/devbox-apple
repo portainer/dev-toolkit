@@ -178,6 +178,13 @@ cmd_enter() {
     exec container exec -ti "$NAME" /bin/zsh -l
   fi
 
+  # Container exists but is stopped — start it and exec in
+  if container_exists; then
+    echo "Starting stopped container..."
+    container start "$NAME"
+    exec container exec -ti "$NAME" /bin/zsh -l
+  fi
+
   # Container doesn't exist, create and start it
   echo "Creating container..."
 
