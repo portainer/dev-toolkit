@@ -343,10 +343,18 @@ cmd_build() {
     exit 1
   fi
 
-  # Build the image
-  container build --tag "$IMAGE" "$build_dir"
+  # Capture the source commit for build provenance.
+  # describe --always --dirty gives a tag if available, else short SHA, with
+  # `-dirty` suffix when the working tree has uncommitted changes.
+  local git_commit
+  git_commit=$(git -C "$build_dir" describe --always --dirty --abbrev=12 2>/dev/null || echo unknown)
+  echo "Source commit: $git_commit"
   echo ""
-  echo "Image built: $IMAGE"
+
+  # Build the image
+  container build --build-arg "GIT_COMMIT=${git_commit}" --tag "$IMAGE" "$build_dir"
+  echo ""
+  echo "Image built: $IMAGE (commit: $git_commit)"
 
   # Auto-remove builder unless --keep-builder flag
   if [[ "$keep_builder" == false ]]; then

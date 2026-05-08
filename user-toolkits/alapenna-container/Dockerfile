@@ -206,7 +206,11 @@ RUN cat > $HOME/.claude/settings.json <<'EOF'
     "command": "node \"$(ls -td ~/.claude/plugins/cache/claude-hud/claude-hud/*/ 2>/dev/null | head -1)dist/index.js\""
   },
   "enabledPlugins": {
-    "claude-hud@claude-hud": true
+    "claude-hud@claude-hud": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "cdx@deviantony-plugins": true
   },
   "permissions": {
     "deny": [
@@ -336,6 +340,14 @@ RUN chmod +x /usr/local/bin/ccm /entrypoint.sh
 # Set zsh as default shell
 # ============================================
 RUN chsh -s $(which zsh)
+
+# ============================================
+# Build provenance
+# Placed last so changing the commit doesn't bust earlier layer cache.
+# Inspect inside the container with: echo $DEVBOX_GIT_COMMIT
+# ============================================
+ARG GIT_COMMIT=unknown
+ENV DEVBOX_GIT_COMMIT=${GIT_COMMIT}
 
 WORKDIR /workspace
 SHELL ["/bin/zsh", "-c"]

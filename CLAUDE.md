@@ -67,6 +67,10 @@ GitHub Actions workflow builds multi-arch images (amd64, arm64) on tag push and 
 3. Build: `docker buildx build -t my-devkit -f path/to/Dockerfile .`
 4. Update `devcontainer.json` image field to use your custom image
 
+## Troubleshooting from Inside a Devbox
+
+When the user reports an issue from a running devbox container, check `$DEVBOX_GIT_COMMIT` to see which commit the image was built from. A `-dirty` suffix means the build included uncommitted local changes. If the value disagrees with the user's expectation (e.g. they expected a recent fix to be present), the image likely wasn't actually rebuilt.
+
 ## Version Management
 
 Current version: `VERSION=2026.05` in Makefile. Releasing:
