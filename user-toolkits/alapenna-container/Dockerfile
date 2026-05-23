@@ -2,6 +2,11 @@ FROM portainer/dev-toolkit:2026.05
 
 ENV HOME=/root
 ENV TERM=xterm-256color
+ENV COLORTERM=truecolor
+ENV EDITOR=fresh
+ENV FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
+# Allows `claude --dangerously-skip-permissions` when running as root inside the container
+ENV IS_SANDBOX=1
 
 # Detect architecture for binary downloads
 ARG TARGETARCH
@@ -15,16 +20,42 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
     file \
-    fzf \
     ripgrep \
     fd-find \
     bat \
     jq \
     lsof \
     unzip \
+    gnupg \
+    socat \
+    binutils \
+    libc6-dev \
+    libcurl4-openssl-dev \
+    libedit2 \
+    libgcc-13-dev \
+    libncurses-dev \
+    libpython3-dev \
+    libsqlite3-0 \
+    libstdc++-13-dev \
+    libxml2-dev \
+    libz3-dev \
+    pkg-config \
+    tzdata \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf $(which fdfind) /usr/local/bin/fd \
     && ln -sf $(which batcat) /usr/local/bin/bat
+
+# fzf: install latest upstream release. Debian's package (0.44.1) is too old
+# for the master shell/key-bindings.zsh, which uses flags like --wrap-sign
+# added in 0.49.0 — version skew makes Ctrl+R silently bail.
+RUN FZF_VERSION=$(curl -s "https://api.github.com/repos/junegunn/fzf/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') \
+    && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "amd64") \
+    && curl -Lo fzf.tar.gz "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/fzf-${FZF_VERSION}-linux_${ARCH}.tar.gz" \
+    && tar xf fzf.tar.gz -C /usr/local/bin/ fzf \
+    && rm fzf.tar.gz \
+    && mkdir -p /usr/share/fzf \
+    && curl -fsSL "https://raw.githubusercontent.com/junegunn/fzf/v${FZF_VERSION}/shell/key-bindings.zsh" -o /usr/share/fzf/key-bindings.zsh
 
 # ============================================
 # zsh plugins (no oh-my-zsh) + starship prompt
@@ -40,6 +71,7 @@ RUN mkdir -p /root/.zsh \
 RUN mkdir -p /root/.config && cat > /root/.config/starship.toml <<'EOF'
 format = """
 $directory\
+$hostname\
 $git_branch\
 $git_status\
 $line_break\
@@ -50,9 +82,14 @@ style = "cyan bold"
 truncation_length = 5
 truncate_to_repo = false
 
+[hostname]
+ssh_only = false
+format = "[@ $hostname]($style)"
+style = "yellow bold"
+
 [git_branch]
 style = "purple bold"
-format = "[│ $symbol$branch]($style)"
+format = "[ │ $symbol$branch]($style)"
 symbol = ""
 
 [git_status]
@@ -136,26 +173,51 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
 # ============================================
 # glow (markdown reader)
 # ============================================
-RUN go install github.com/charmbracelet/glow@latest \
-    && go clean -cache -modcache
+RUN GLOW_VERSION=$(curl -s "https://api.github.com/repos/charmbracelet/glow/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') \
+    && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "amd64") \
+    && curl -Lo glow.tar.gz "https://github.com/charmbracelet/glow/releases/download/v${GLOW_VERSION}/glow_${GLOW_VERSION}_Linux_${ARCH}.tar.gz" \
+    && tar xzf glow.tar.gz \
+    && mv glow_*/glow /usr/local/bin/ \
+    && rm -rf glow.tar.gz glow_*
 
 # ============================================
-# Claude Code + Plannotator CLI
+# Swift toolchain (via swiftly)
 # ============================================
-RUN curl -fsSL https://claude.ai/install.sh | bash \
-    && curl -fsSL https://plannotator.ai/install.sh | bash
+ENV SWIFTLY_HOME_DIR=/root/.local/share/swiftly
+ENV SWIFTLY_BIN_DIR=/root/.local/bin
+ENV SWIFTLY_TOOLCHAINS_DIR=/root/.local/share/swiftly/toolchains
+ENV PATH="${SWIFTLY_BIN_DIR}:${PATH}"
+
+RUN ARCH=$(uname -m) \
+    && cd /tmp \
+    && curl -fsSLO "https://download.swift.org/swiftly/linux/swiftly-${ARCH}.tar.gz" \
+    && tar -xzf "swiftly-${ARCH}.tar.gz" \
+    && ./swiftly init --assume-yes --quiet-shell-followup --no-modify-profile \
+    && rm -rf "swiftly-${ARCH}.tar.gz" swiftly LICENSE.txt
+
+# ============================================
+# Claude Code
+# ============================================
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# ============================================
+# Xcode MCP server registration
+# ============================================
+RUN claude mcp add --scope user --transport stdio xcode -- \
+    socat - UNIX-CONNECT:/var/run/xcode-mcp.sock
 
 # ============================================
 # Claude Code plugins (via CLI)
 # ============================================
-ENV PATH="/root/.local/bin:${PATH}"
 RUN claude plugin marketplace add jarrodwatts/claude-hud \
-    && claude plugin marketplace add backnotprop/plannotator \
     && claude plugin marketplace add anthropics/claude-plugins-official \
+    && claude plugin marketplace add deviantony/claude-plugins \
     && claude plugin install claude-hud \
-    && claude plugin install plannotator@plannotator \
     && claude plugin install typescript-lsp@claude-plugins-official \
-    && claude plugin install gopls-lsp@claude-plugins-official
+    && claude plugin install gopls-lsp@claude-plugins-official \
+    && claude plugin install swift-lsp@claude-plugins-official \
+    && claude plugin install skill-creator@claude-plugins-official \
+    && claude plugin install cdx@deviantony-plugins
 
 # Claude Code config files
 RUN mkdir -p $HOME/.claude/plugins/claude-hud \
@@ -189,13 +251,17 @@ RUN cat > $HOME/.claude/settings.json <<'EOF'
   },
   "enabledPlugins": {
     "claude-hud@claude-hud": true,
-    "plannotator@plannotator": true
+    "typescript-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "cdx@deviantony-plugins": true
   },
-  "alwaysThinkingEnabled": true,
   "permissions": {
     "deny": [
       "Read(**/.env*)",
       "Read(~/.ssh/**)",
+      "Read(~/.gnupg/**)",
       "Read(~/.docker/**)"
     ]
   }
@@ -247,23 +313,17 @@ setopt CORRECT               # Spelling correction for commands
 # ----------------------------------------
 # Key bindings
 # ----------------------------------------
-# Up/down arrow searches history with current prefix
+# Substring history search on Up/Down. Bind both the normal (`^[[A`) and
+# application-cursor (`^[OA`) escape sequences — apple/container's TTY
+# exec delivers `^[OA`, so binding only `^[[A` silently falls through to
+# the default `up-line-or-history` (plain chronological walk).
 bindkey '^[[A' history-substring-search-up
+bindkey '^[OA' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
+bindkey '^[OB' history-substring-search-down
 
 # fzf keybindings (Ctrl+R history, Ctrl+T files, Alt+C cd)
-source /usr/share/doc/fzf/examples/key-bindings.zsh
-
-# ----------------------------------------
-# Environment
-# ----------------------------------------
-export PATH="$HOME/.local/bin:$PATH"
-export EDITOR="fresh"
-export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
-
-# Plannotator (devcontainer mode on port 8999)
-export PLANNOTATOR_REMOTE=1
-export PLANNOTATOR_PORT=8999
+source /usr/share/fzf/key-bindings.zsh
 
 # ----------------------------------------
 # Tool integrations
@@ -283,6 +343,7 @@ alias cat="bat --paging=never"
 alias l="eza -la --icons"
 alias br='fzf --preview "bat --color=always {}"'
 alias gp="git push"
+alias cl="claude --dangerously-skip-permissions"
 
 dir() { eza --tree --level="${1:-1}" --icons; }
 
@@ -312,6 +373,7 @@ ha() {
 
   Productivity
     ccm         Claude commit message
+    cl          Claude (skip permissions)
 "
 }
 
@@ -320,14 +382,22 @@ EOF
 # ============================================
 # Custom scripts
 # ============================================
-COPY user-toolkits/alapenna-ghostty/scripts/ccm /usr/local/bin/ccm
-COPY user-toolkits/alapenna-ghostty/scripts/entrypoint.sh /entrypoint.sh
+COPY scripts/ccm /usr/local/bin/ccm
+COPY scripts/entrypoint.sh /entrypoint.sh
 RUN chmod +x /usr/local/bin/ccm /entrypoint.sh
 
 # ============================================
 # Set zsh as default shell
 # ============================================
 RUN chsh -s $(which zsh)
+
+# ============================================
+# Build provenance
+# Placed last so changing the commit doesn't bust earlier layer cache.
+# Inspect inside the container with: echo $DEVBOX_GIT_COMMIT
+# ============================================
+ARG GIT_COMMIT=unknown
+ENV DEVBOX_GIT_COMMIT=${GIT_COMMIT}
 
 WORKDIR /workspace
 SHELL ["/bin/zsh", "-c"]
