@@ -40,9 +40,19 @@ CONTAINER_MEMORY="8g"
 BUILDER_CPUS=8
 BUILDER_MEMORY="8g"
 
-# Network configuration (see setup_network for the why)
-NETWORK_NAME="devbox-apple-net"
-NETWORK_SUBNET="192.168.100.0/24"
+# Xcode MCP bridge (xcodebuildmcp on Xcode 16+). Lives under SHARE_TMP so
+# cleanup is colocated with the rest of devbox state. Lifecycle is tied to
+# the container via start_xcode_bridge / stop_xcode_bridge — there is no
+# always-on listener.
+XCODE_MCP_SOCKET="$SHARE_TMP/xcode-mcp.sock"
+XCODE_MCP_PIDFILE="$SHARE_TMP/.xcode-mcp.pid"
+XCODE_MCP_LOG="$SHARE_TMP/.xcode-mcp.log"
+# Scope xcodebuildmcp to iOS+macOS-relevant workflows (see
+# https://www.xcodebuildmcp.com/docs/workflows for the full list of 15).
+# Add `xcode-ide` to enable Xcode 26.3+ IDE-only features (preview rendering,
+# Issue Navigator) — that workflow proxies xcrun mcpbridge and requires the
+# Xcode Tools toggle in Xcode → Settings → Intelligence.
+XCODEBUILDMCP_WORKFLOWS="simulator,macos,session-management,project-discovery,device,debugging,swift-package,utilities,ui-automation"
 
 check_container_cli() {
   if ! command -v container &>/dev/null; then
@@ -53,29 +63,10 @@ check_container_cli() {
   fi
 }
 
-# Ensure an IPv4-only network exists for the container.
-#
-# Apple's `container` runtime (apple/container) assigns an IPv6 ULA to eth0
-# via SLAAC but does NOT install an IPv6 default route — NAT66 is not yet
-# implemented (see https://github.com/apple/container/issues/1034). Any IPv6
-# egress outside the local /64 returns ENETUNREACH. Tools with weak Happy
-# Eyeballs fallback (notably Node's undici/fetch, which powers corepack,
-# npm, pnpm) pick the IPv6 candidate and hang to timeout instead of
-# retrying over IPv4. curl is fine; node fetch is not.
-#
-# Fix: run the container on a network created without --subnet-v6, which
-# makes apple/container skip IPv6 assignment entirely. This mirrors how
-# OrbStack's eth0 has no IPv6 globals at all, so getaddrinfo never returns
-# AAAA candidates (RFC 6724 source-address selection).
-#
-# Remove this and revert to the default network once apple/container ships
-# working NAT66 / IPv6 egress.
-setup_network() {
-  if ! container network list --quiet 2>/dev/null | grep -q "^${NETWORK_NAME}$"; then
-    echo "Creating IPv4-only network: ${NETWORK_NAME} (${NETWORK_SUBNET})"
-    container network create "${NETWORK_NAME}" --subnet "${NETWORK_SUBNET}"
-  fi
-}
+# Networking note: this container runs on apple/container's default network.
+# The container's IP is directly routable from the Mac, so we don't need a
+# --publish range — `http://<container-ip>:<port>` Just Works for anything
+# bound to 0.0.0.0 inside the container.
 
 # Helper: Check if container is running
 container_is_running() {
@@ -85,6 +76,27 @@ container_is_running() {
 # Helper: Check if container exists (running or stopped)
 container_exists() {
   container list --all 2>/dev/null | grep -q "^$NAME"
+}
+
+# Helper: Wait until the container's in-guest agent is accepting execs.
+#
+# `container run --detach` and `container start` both return as soon as the
+# Linux VM begins booting, not when the agent is ready to handle exec. Hitting
+# the runtime in that window can fail outright or — worse — wedge it via the
+# upstream apple/container XPC race (#576/#167). Probe with a no-op exec.
+wait_for_container_ready() {
+  local max_wait=10 elapsed=0
+  echo -n "Waiting for container..."
+  while ! container exec "$NAME" true >/dev/null 2>&1; do
+    if (( elapsed >= max_wait )); then
+      echo " timed out after ${max_wait}s" >&2
+      return 1
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+    echo -n "."
+  done
+  echo " ready (${elapsed}s)"
 }
 
 # Helper: Check if builder exists
@@ -101,63 +113,132 @@ get_builder_resources() {
   echo "$cpus $mem_gb"
 }
 
-# Helper: Copy credential directory into container
-copy_credential_dir() {
-  local src="$1"
-  local dst="$2"
-  local name="$3"
-
-  local files=("$src"/*)
-  if [[ -d "$src" ]] && [[ -e "${files[1]}" ]]; then
-    echo "Copying $name..."
-
-    for f in "${files[@]}"; do
-      if [[ -f "$f" ]]; then
-        cat "$f" | container exec -i "$NAME" tee "$dst/$(basename "$f")" > /dev/null
-      elif [[ -d "$f" ]]; then
-        local dirname="$(basename "$f")"
-        container exec "$NAME" mkdir -p "$dst/$dirname"
-        tar -C "$src/$dirname" -cf - . 2>/dev/null | container exec -i "$NAME" tar -C "$dst/$dirname" -xf - 2>/dev/null || true
-      fi
-    done
-
-    container exec "$NAME" sh -c "chmod 700 '$dst' && find '$dst' -type f -exec chmod 600 {} +"
-  else
-    echo "  (no $name found, skipping)"
+# Helper: Stage one credential dir under $SHARE_TMP for the in-container copy.
+#
+# `rsync -a` is `-rlptgoD`; we drop -D (devices/specials) because we never
+# want to recreate macOS Unix sockets (gpg-agent's S.gpg-agent, 1Password's
+# ~/.ssh/agent/s.*, etc.) inside the Linux VM. The in-guest agents create
+# their own socket paths, and a host-side socket file confuses the
+# in-container `cp -a` ("No such file or directory" on perms preserve).
+#
+# We also exclude `*.lock`: GPG leaves lock files behind on the host
+# (e.g. ~/.gnupg/public-keys.d/pubring.db.lock) that are stale from the
+# guest's perspective — copying them in causes "database is locked" errors
+# on the first in-container gpg invocation.
+stage_creds_subdir() {
+  local src="$1" dst="$2" label="$3"
+  if [[ ! -d "$src" ]] || [[ -z "$(ls -A "$src" 2>/dev/null)" ]]; then
+    echo "  (no $label found, skipping)"
+    return 1
   fi
+  echo "Staging $label..."
+  mkdir -p "$dst"
+  rsync -a --no-D --exclude='*.lock' "$src/" "$dst/"
 }
 
-# Copy SSH and GPG keys into container (one-time setup)
+# Copy SSH and GPG keys into container (one-time setup).
+#
+# We stage credentials through the existing /share-tmp bind mount and do the
+# in-container copy with a single, non-piped `container exec`. The previous
+# approach streamed each file through `container exec -i ... tee`, which is
+# the apple/container code path most prone to wedging the runtime: a race in
+# the apiserver↔runtime XPC stdin-EOF callback (upstream #576 / #167) leaves
+# the runtime in a state where every subsequent stop/rm/exec hangs forever,
+# only recoverable by `kill -9` on container-runtime-linux. Streaming N
+# credential files rolled the dice on that race once per file; this drops it
+# to one non-piped exec call.
 setup_credentials() {
-  # Create directories
-  container exec "$NAME" mkdir -p /root/.ssh /root/.gnupg
+  local stage="$SHARE_TMP/.creds"
+  rm -rf "$stage"
+  mkdir -p "$stage"
 
-  # Copy credentials
-  copy_credential_dir "$SSH_DIR" "/root/.ssh" "SSH keys"
-  copy_credential_dir "$GNUPG_DIR" "/root/.gnupg" "GPG keys"
+  local copied=0
+  stage_creds_subdir "$SSH_DIR"   "$stage/ssh"   "SSH keys" && copied=1
+  stage_creds_subdir "$GNUPG_DIR" "$stage/gnupg" "GPG keys" && copied=1
+
+  if [[ $copied -eq 0 ]]; then
+    rm -rf "$stage"
+    return
+  fi
+
+  # Single non-piped exec: copy from the bind-mounted stage dir, lock down
+  # perms, then rm the stage dir. /share-tmp is a bind mount of $SHARE_TMP,
+  # so the rm also cleans the host-side staging copy.
+  container exec "$NAME" sh -c '
+    set -e
+    for sub in ssh gnupg; do
+      if [ -d "/share-tmp/.creds/$sub" ]; then
+        mkdir -p "/root/.$sub"
+        cp -a "/share-tmp/.creds/$sub/." "/root/.$sub/"
+        chmod 700 "/root/.$sub"
+        find "/root/.$sub" -type f -exec chmod 600 {} +
+      fi
+    done
+    rm -rf /share-tmp/.creds
+  '
 
   echo "Credentials setup complete."
 }
 
-# Copy git config from host
+# Copy git config from host.
+#
+# Single-exec design (mirrors setup_credentials): one `container exec` call,
+# values passed via -e env vars so we don't string-interpolate user input into
+# a shell script. Each apiserver roundtrip is a fresh chance to hit an
+# apple/container XPC race (upstream #167) — fewer is strictly better.
 setup_git_config() {
-  local host_email=$(git config --global --get user.email 2>/dev/null)
-  local host_name=$(git config --global --get user.name 2>/dev/null)
-  local host_gpg_key=$(git config --global --get user.signingkey 2>/dev/null)
+  local host_email host_name host_gpg_key
+  host_email=$(git config --global --get user.email 2>/dev/null)
+  host_name=$(git config --global --get user.name 2>/dev/null)
+  host_gpg_key=$(git config --global --get user.signingkey 2>/dev/null)
 
-  if [[ -n "$host_email" ]] && [[ -n "$host_name" ]]; then
-    echo "Copying git config from host..."
-    container exec "$NAME" git config --global user.email "$host_email"
-    container exec "$NAME" git config --global user.name "$host_name"
-    container exec "$NAME" git config --global push.autoSetupRemote true
-
-    if [[ -n "$host_gpg_key" ]]; then
-      container exec "$NAME" git config --global commit.gpgsign true
-      container exec "$NAME" git config --global user.signingkey "$host_gpg_key"
-    fi
-
-    echo "Git configured."
+  if [[ -z "$host_email" || -z "$host_name" ]]; then
+    return
   fi
+
+  echo "Copying git config from host..."
+  container exec \
+    -e "HOST_EMAIL=$host_email" \
+    -e "HOST_NAME=$host_name" \
+    -e "HOST_GPG_KEY=$host_gpg_key" \
+    "$NAME" \
+    sh -c '
+      git config --global user.email "$HOST_EMAIL"
+      git config --global user.name "$HOST_NAME"
+      git config --global push.autoSetupRemote true
+      if [ -n "$HOST_GPG_KEY" ]; then
+        git config --global commit.gpgsign true
+        git config --global user.signingkey "$HOST_GPG_KEY"
+      fi
+    '
+  echo "Git configured."
+}
+
+# Replace the image's empty /workspace directory with a symlink to the real
+# bind-mount at $WORKSPACE_DIR.
+#
+# Why: xcodebuildmcp runs on the macOS host and only understands host-side
+# paths. By making the in-container mount live at the same absolute path as
+# the host, every path Claude reads from `pwd`, `find`, etc. is already a
+# valid host path — no per-call translation. /workspace stays as a typing
+# shortcut for humans.
+#
+# Why this needs to run at first creation: the Dockerfile sets `WORKDIR
+# /workspace`, which materializes an empty directory in the image. The
+# bind mount lives elsewhere now ($WORKSPACE_DIR), so we rm the leftover
+# placeholder and replace it with a symlink.
+#
+# Single non-piped exec, mirroring the setup_credentials pattern (see comment
+# there re: apple/container XPC race #167).
+setup_workspace_alias() {
+  echo "Symlinking /workspace -> $WORKSPACE_DIR..."
+  container exec \
+    -e "WORKSPACE_DIR=$WORKSPACE_DIR" \
+    "$NAME" \
+    sh -c '
+      rm -rf /workspace
+      ln -sfn "$WORKSPACE_DIR" /workspace
+    '
 }
 
 # Setup GitHub CLI authentication
@@ -167,6 +248,78 @@ setup_gh_auth() {
   open https://github.com/login/device 2>/dev/null &
   sleep 1
   container exec -ti "$NAME" gh auth login --git-protocol ssh --web --skip-ssh-key
+}
+
+# Start the Xcode MCP bridge on the host: a backgrounded socat listener that
+# spawns `xcodebuildmcp mcp` per connection. Coupled to container lifecycle —
+# the matching stop_xcode_bridge tears it down on `stop`/`destroy`.
+# Hard-fails if prereqs are missing rather than silently skipping — the
+# in-container MCP server is pre-registered and would otherwise show up as
+# unhealthy with no obvious cause.
+start_xcode_bridge() {
+  if ! command -v socat &>/dev/null; then
+    echo "Error: socat not found on host." >&2
+    echo "Install with: brew install socat" >&2
+    exit 1
+  fi
+  if ! command -v xcodebuildmcp &>/dev/null; then
+    echo "Error: xcodebuildmcp not found on host." >&2
+    echo "Install with: brew install getsentry/xcodebuildmcp/xcodebuildmcp" >&2
+    exit 1
+  fi
+
+  # Reap any stale state (orphaned PID file or socket from a prior unclean exit)
+  stop_xcode_bridge
+
+  mkdir -p "$(dirname "$XCODE_MCP_SOCKET")"
+
+  echo "Starting Xcode MCP bridge listener..."
+  # Supervisor loop instead of socat's `fork`. Without fork, socat handles
+  # exactly one connection at a time — and on connection close, both socat
+  # and its EXEC'd xcodebuildmcp child exit cleanly via SIGTERM propagation.
+  # The while loop then re-listens for the next Claude session. Net effect:
+  # at most one xcodebuildmcp alive at any moment, no orphan accumulation,
+  # no idle-timeout workaround needed.
+  nohup env \
+      XCODEBUILDMCP_ENABLED_WORKFLOWS="$XCODEBUILDMCP_WORKFLOWS" \
+      XCODEBUILDMCP_SENTRY_DISABLED=true \
+      XCODE_MCP_SOCKET="$XCODE_MCP_SOCKET" \
+    bash -c '
+      while socat "UNIX-LISTEN:${XCODE_MCP_SOCKET},mode=600" "EXEC:xcodebuildmcp mcp"; do :; done
+    ' > "$XCODE_MCP_LOG" 2>&1 &
+  echo $! > "$XCODE_MCP_PIDFILE"
+
+  # Wait for socat to actually bind the socket before returning. The supervisor
+  # is nohup'd, so there's a small async window (bash startup → loop → socat
+  # bind) during which the socket file doesn't exist. Without this wait,
+  # `container start`/`container run` immediately after can fail with:
+  #     Error: mount source path '$XCODE_MCP_SOCKET' does not exist
+  local attempts=0 max_attempts=50
+  while [[ ! -S "$XCODE_MCP_SOCKET" ]]; do
+    if (( attempts >= max_attempts )); then
+      echo "Error: Xcode MCP bridge socket did not appear within 5s." >&2
+      echo "Check $XCODE_MCP_LOG for details." >&2
+      exit 1
+    fi
+    sleep 0.1
+    attempts=$((attempts + 1))
+  done
+}
+
+stop_xcode_bridge() {
+  if [[ -f "$XCODE_MCP_PIDFILE" ]]; then
+    local pid
+    pid=$(cat "$XCODE_MCP_PIDFILE" 2>/dev/null || echo "")
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      # Kill the supervisor first so the loop stops re-spawning socat.
+      # Then kill any in-flight socat child (which on SIGTERM cascades to
+      # xcodebuildmcp via socat's EXEC shutdown handler).
+      kill "$pid" 2>/dev/null || true
+      pkill -P "$pid" 2>/dev/null || true
+    fi
+    rm -f "$XCODE_MCP_PIDFILE"
+  fi
+  rm -f "$XCODE_MCP_SOCKET"
 }
 
 cmd_enter() {
@@ -181,35 +334,61 @@ cmd_enter() {
   # Container exists but is stopped — start it and exec in
   if container_exists; then
     echo "Starting stopped container..."
+    # Restart the bridge so the in-container socket mount has something to
+    # connect to. The volume mount itself was baked in at create time.
+    start_xcode_bridge
     container start "$NAME"
+    wait_for_container_ready || exit 1
     exec container exec -ti "$NAME" /bin/zsh -l
   fi
 
   # Container doesn't exist, create and start it
   echo "Creating container..."
 
-  # Ensure IPv4-only network exists (works around apple/container IPv6 egress bug)
-  setup_network
-
   # Ensure directories exist
   mkdir -p "$WORKSPACE_DIR" "$SHARE_TMP"
 
-  # Build volume arguments
+  # Build volume arguments.
+  # Workspace is bind-mounted at the SAME absolute path as on the host so that
+  # paths Claude passes to host-side MCP tools (xcodebuildmcp) resolve
+  # identically on both sides. /workspace remains usable as a shorthand via a
+  # symlink set up in setup_workspace_alias.
   local volume_args=(
-    --volume "$WORKSPACE_DIR:/workspace"
+    --volume "$WORKSPACE_DIR:$WORKSPACE_DIR"
     --volume "$SHARE_TMP:/share-tmp"
   )
 
-  # Mount Docker socket if available on host
-  # /var/run/docker.sock is typically a symlink (OrbStack: ~/.orbstack/run/docker.sock,
-  # Docker Desktop: ~/.docker/run/docker.sock). Apple container's single-file mount
-  # cannot follow the symlink, so resolve to the real path before mounting.
-  if [[ -S /var/run/docker.sock ]]; then
-    local docker_sock_src
-    docker_sock_src=$(readlink -f /var/run/docker.sock 2>/dev/null || echo /var/run/docker.sock)
-    echo "Docker socket detected at $docker_sock_src - mounting for Docker CLI access"
-    volume_args+=(--volume "$docker_sock_src:/var/run/docker.sock")
+  # Mount Docker socket. /var/run/docker.sock is typically a symlink (OrbStack:
+  # ~/.orbstack/run/docker.sock, Docker Desktop: ~/.docker/run/docker.sock).
+  # Apple container's single-file mount cannot follow the symlink, so resolve
+  # to the real path before mounting.
+  #
+  # Mandatory at create time: mounts are baked in by `container run` and cannot
+  # be added later. Failing fast here is much friendlier than discovering it
+  # mid-session via "no such file or directory" on docker.sock. Resume path
+  # (cmd_enter for an existing container) does not re-check — if Docker is down
+  # when resuming, you still get into the container; `docker` calls just fail
+  # until you restart Docker on the Mac.
+  if [[ ! -S /var/run/docker.sock ]]; then
+    echo "" >&2
+    echo "Error: Docker socket not found at /var/run/docker.sock on host." >&2
+    echo "       Docker (OrbStack or Docker Desktop) must be running before" >&2
+    echo "       creating the container — the mount is baked in at create time" >&2
+    echo "       and cannot be patched up later." >&2
+    echo "" >&2
+    echo "       Start Docker on the Mac, then re-run: devbox-apple" >&2
+    echo "" >&2
+    exit 1
   fi
+  local docker_sock_src
+  docker_sock_src=$(readlink -f /var/run/docker.sock 2>/dev/null || echo /var/run/docker.sock)
+  echo "Docker socket detected at $docker_sock_src - mounting for Docker CLI access"
+  volume_args+=(--volume "$docker_sock_src:/var/run/docker.sock")
+
+  # Start the Xcode MCP bridge on the host (hard-fails if prereqs missing)
+  # and mount its socket into the container.
+  start_xcode_bridge
+  volume_args+=(--volume "$XCODE_MCP_SOCKET:/var/run/xcode-mcp.sock")
 
   # Start container in detached mode
   # Note: Apple container uses FIXED allocation per VM (not shared like OrbStack)
@@ -219,20 +398,20 @@ cmd_enter() {
     --detach \
     --memory "$CONTAINER_MEMORY" \
     --cpus "$CONTAINER_CPUS" \
-    --network "$NETWORK_NAME" \
-    --publish 10000-19999:10000-19999 \
     "${volume_args[@]}" \
     --ssh \
     "$IMAGE"
 
-  # Wait for container to be ready
-  sleep 2
+  wait_for_container_ready || exit 1
 
   # Copy credentials on first creation
   setup_credentials
 
   # Copy git config from host
   setup_git_config
+
+  # Mirror host workspace path inside container (for host-side MCP tools like xcodebuildmcp)
+  setup_workspace_alias
 
   # Setup GitHub CLI authentication
   setup_gh_auth
@@ -251,6 +430,9 @@ cmd_stop() {
   else
     echo "Container not running."
   fi
+
+  # Always tear down the bridge — idempotent, reaps orphans from external stops too
+  stop_xcode_bridge
 }
 
 cmd_destroy() {
@@ -263,6 +445,8 @@ cmd_destroy() {
   else
     echo "Container does not exist."
   fi
+
+  stop_xcode_bridge
 }
 
 cmd_status() {
@@ -273,7 +457,15 @@ cmd_status() {
 
   if container_is_running; then
     echo "Container: running"
-    container inspect "$NAME" 2>/dev/null | head -20
+    local ip
+    ip=$(container inspect "$NAME" 2>/dev/null \
+      | grep -oE '"ipv4Address":"[^/]+' \
+      | head -1 \
+      | cut -d'"' -f4)
+    if [[ -n "$ip" ]]; then
+      echo "IP:        $ip"
+      echo "           (services bound to 0.0.0.0 in-container reachable at http://$ip:<port>)"
+    fi
   elif container_exists; then
     echo "Container: stopped"
   else
@@ -495,12 +687,16 @@ cmd_help() {
   echo "  Auto-remove after build: yes (use --keep-builder to prevent)"
   echo ""
   echo "Mounted:"
-  echo "  $WORKSPACE_DIR -> /workspace"
+  echo "  $WORKSPACE_DIR -> $WORKSPACE_DIR (mirrored path; /workspace symlinks here)"
   echo "  $SHARE_TMP -> /share-tmp"
   echo "  /var/run/docker.sock -> /var/run/docker.sock (if available)"
+  echo "  $XCODE_MCP_SOCKET -> /var/run/xcode-mcp.sock (xcodebuildmcp on host)"
   echo ""
-  echo "Ports:"
-  echo "  10000-19999 (mapped 1:1)"
+  echo "Networking:"
+  echo "  Container is on apple/container's default network."
+  echo "  Services bound to 0.0.0.0 inside the container are reachable from"
+  echo "  the Mac at http://<container-ip>:<port>. Find the IP via:"
+  echo "    devbox-apple status   (or: container inspect $NAME)"
   echo ""
   echo "Note: SSH/GPG keys are copied on first creation (not mounted)"
 }

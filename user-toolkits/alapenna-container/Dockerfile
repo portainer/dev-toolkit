@@ -13,15 +13,6 @@ ARG TARGETARCH
 
 # ============================================
 # System packages (combined, with cleanup)
-#
-# Grouped by purpose:
-#   - Shell/CLI ergonomics: zsh, fzf, ripgrep, fd-find, bat, jq, lsof, file
-#   - Networking + archive: wget, curl, unzip
-#   - Git signing: gnupg
-#   - Swift toolchain runtime/build deps (per swift.org Ubuntu 24.04 list)
-#     installed alongside swiftly further down. libcurl/libxml2/libz3/libedit
-#     are linked by the toolchain; libgcc-13/libstdc++-13/libc6 supply the
-#     C++ runtime; libpython3 is needed for lldb's Python bindings.
 # ============================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
     zsh \
@@ -37,6 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     lsof \
     unzip \
     gnupg \
+    socat \
     binutils \
     libc6-dev \
     libcurl4-openssl-dev \
@@ -182,11 +174,6 @@ RUN GLOW_VERSION=$(curl -s "https://api.github.com/repos/charmbracelet/glow/rele
 
 # ============================================
 # Swift toolchain (via swiftly)
-# Latest stable toolchain. System deps are in the apt block at the top.
-# --no-modify-profile: we manage .zshrc ourselves; the SWIFTLY_* ENV vars
-# below replace the env.sh that swiftly would otherwise source from a
-# profile file. Toolchain binaries (swift, swiftc, lldb…) are symlinked
-# into SWIFTLY_BIN_DIR (/root/.local/bin), which we put on PATH.
 # ============================================
 ENV SWIFTLY_HOME_DIR=/root/.local/share/swiftly
 ENV SWIFTLY_BIN_DIR=/root/.local/bin
@@ -206,6 +193,12 @@ RUN ARCH=$(uname -m) \
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # ============================================
+# Xcode MCP server registration
+# ============================================
+RUN claude mcp add --scope user --transport stdio xcode -- \
+    socat - UNIX-CONNECT:/var/run/xcode-mcp.sock
+
+# ============================================
 # Claude Code plugins (via CLI)
 # ============================================
 RUN claude plugin marketplace add jarrodwatts/claude-hud \
@@ -214,6 +207,7 @@ RUN claude plugin marketplace add jarrodwatts/claude-hud \
     && claude plugin install claude-hud \
     && claude plugin install typescript-lsp@claude-plugins-official \
     && claude plugin install gopls-lsp@claude-plugins-official \
+    && claude plugin install swift-lsp@claude-plugins-official \
     && claude plugin install skill-creator@claude-plugins-official \
     && claude plugin install cdx@deviantony-plugins
 
@@ -251,6 +245,7 @@ RUN cat > $HOME/.claude/settings.json <<'EOF'
     "claude-hud@claude-hud": true,
     "typescript-lsp@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
     "cdx@deviantony-plugins": true
   },

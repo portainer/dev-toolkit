@@ -7,6 +7,11 @@ A development environment using Apple's native container CLI on macOS 26+.
 - macOS 26 (Tahoe) or later
 - Apple Silicon Mac
 - zsh shell (default on macOS)
+- Xcode 16 or later with command-line tools
+- [`xcodebuildmcp`](https://www.xcodebuildmcp.com/) on the host (`brew install getsentry/xcodebuildmcp/xcodebuildmcp`) — the MCP server that backs the in-container Xcode integration
+- `socat` on the host (`brew install socat`) — used to expose `xcodebuildmcp` over a Unix socket the container can reach
+
+`devbox-apple` will refuse to start the container if `socat` or `xcodebuildmcp` is missing. If you don't want the Xcode integration, edit `devbox-apple` and remove the `start_xcode_bridge` calls in `cmd_enter`.
 
 ## Installing Apple Container CLI
 
@@ -69,8 +74,9 @@ devbox-apple
 | `~/workspaces/applecntr-workspace` | `/workspace` | read-write |
 | `~/tmp/dev-toolkit` | `/share-tmp` | read-write |
 | `/var/run/docker.sock` | `/var/run/docker.sock` | read-write (auto-detected) |
+| `~/tmp/dev-toolkit/xcode-mcp.sock` | `/var/run/xcode-mcp.sock` | Xcode MCP bridge socket (managed by `devbox-apple`) |
 
-These directories are mounted and changes sync immediately between host and container. The Docker socket is mounted automatically when detected on the host.
+These directories are mounted and changes sync immediately between host and container. The Docker socket is mounted automatically when detected on the host. The Xcode MCP socket is created by `devbox-apple` on container start and torn down on stop — see [Xcode MCP integration](#xcode-mcp-integration) below.
 
 ### Copied Directories (One-Time)
 
@@ -146,8 +152,74 @@ Authentication persists across container restarts.
 - **Terminal**: zsh, starship, fzf, ripgrep, fd, bat, eza
 - **Files**: yazi, zoxide, glow
 - **Editor**: fresh
-- **AI**: Claude Code with plugins (claude-hud)
+- **AI**: Claude Code with plugins (claude-hud) and pre-registered Xcode MCP server
 - **Scripts**: ccm (Claude commit message generator)
+
+## Xcode MCP integration
+
+Claude Code inside the container can drive Xcode tooling on the host via [xcodebuildmcp](https://www.xcodebuildmcp.com/) — an MCP server that exposes ~79 tools across iOS, macOS, watchOS, tvOS, and visionOS workflows.
+
+### How it works
+
+`xcodebuildmcp` is a macOS-only stdio binary that shells out to `xcodebuild`, `xcrun`, `simctl`, and `devicectl` — it can't run inside the Linux container directly, and it doesn't expose a TCP port. Instead, `devbox-apple` runs a `socat` listener on the Mac that wraps `xcodebuildmcp mcp` behind a Unix socket, then mounts that socket into the container the same way `/var/run/docker.sock` is mounted. An MCP server entry pre-registered in the image (`claude mcp list` → `xcode`) relays Claude's stdio to the mounted socket via in-container `socat`.
+
+### Workflow scoping
+
+The bridge is scoped to iOS+macOS-relevant workflows by default via `XCODEBUILDMCP_ENABLED_WORKFLOWS`. To adjust, edit `XCODEBUILDMCP_WORKFLOWS` near the top of `devbox-apple` — see the [workflows reference](https://www.xcodebuildmcp.com/docs/workflows) for the full list. To enable Xcode IDE-only features (preview rendering, Issue Navigator, doc search), add `xcode-ide` to the list — that workflow proxies `xcrun mcpbridge` under the hood and requires Xcode 26.3+ with the **Xcode Tools** toggle in *Xcode → Settings → Intelligence*.
+
+### Lifecycle
+
+The bridge is tied to the container — there is no always-on listener on the Mac.
+
+| `devbox-apple` action | Bridge effect |
+|-----------------------|---------------|
+| Create container (first run) | Spawns `socat` listener, bakes the socket mount into the container |
+| Resume stopped container | Re-spawns `socat` listener (mount was baked in at create time) |
+| `devbox-apple stop` | Kills the listener, removes socket and PID files |
+| `devbox-apple destroy` | Same teardown as `stop` |
+| External `container stop devbox-apple` | Listener orphans; reaped on next `devbox-apple` start or stop |
+
+### Verifying the connection
+
+Inside the container:
+
+```bash
+ls -la /var/run/xcode-mcp.sock   # leading 's' = Unix socket, mount worked
+claude mcp list                  # 'xcode' should be listed
+```
+
+Then start `claude` and run `/mcp` — `xcode` should be `connected`.
+
+### Troubleshooting
+
+Bridge log on the Mac (most useful first stop for any "xcode failed to reconnect" / unhealthy MCP issue):
+
+```bash
+tail -f ~/tmp/dev-toolkit/.xcode-mcp.log
+```
+
+What it shows: `xcodebuildmcp` startup banner and registered workflows, per-call traces, errors from the host-side server. If the log is empty, the listener didn't start — check `socat` and `xcodebuildmcp` are on `$PATH` on the Mac.
+
+Other quick checks:
+
+```bash
+# Mac: is the listener running?
+cat ~/tmp/dev-toolkit/.xcode-mcp.pid && ps -p "$(cat ~/tmp/dev-toolkit/.xcode-mcp.pid)"
+
+# Mac: connect manually to confirm the socket end-to-end
+socat - UNIX-CONNECT:$HOME/tmp/dev-toolkit/xcode-mcp.sock
+
+# Container: socket present and is a socket (leading 's')?
+ls -la /var/run/xcode-mcp.sock
+```
+
+If the bridge is wedged, `devbox-apple stop && devbox-apple` re-spawns the listener cleanly.
+
+### Security properties
+
+- Socket lives at mode `600` in `~/tmp/dev-toolkit/` — only your user can connect.
+- No network port, no remote login enabled on the host.
+- `xcodebuildmcp` is spawned per-connection with the same blast radius as you running it manually.
 
 ## Builder Configuration
 
@@ -187,16 +259,38 @@ devbox-apple rebuild --keep-builder  # Reuses existing builder (fast!)
 devbox-apple rebuild                 # Final build removes builder
 ```
 
-## Port Configuration
+## Networking
 
-The container exposes ports **10000-19999** (mapped 1:1 to host) to avoid conflicts with system services.
+The container runs on apple/container's default network — no port range is published. Services bound to `0.0.0.0` inside the container are reachable from the Mac directly at the container's IP:
+
+```bash
+devbox-apple status              # prints the container's IP
+# Container: running
+# IP:        192.168.64.2
+#            (services bound to 0.0.0.0 in-container reachable at http://192.168.64.2:<port>)
+```
+
+Then from your Mac browser/CLI:
+
+```
+http://192.168.64.2:5173/        # Vite, etc.
+```
+
+Practical notes:
+- Services that bind only to `127.0.0.1` (Vite's default, for instance) are *not* reachable from the Mac. Use `--host` / `host: true` / equivalent to bind to all interfaces.
+- This trades a little discoverability (you need the IP) for honesty (no aliasing through localhost). And no port collisions with whatever else is running on your Mac.
+- **macOS Local Network permission is per-app.** If `curl` from the Mac reaches the container fine but a browser shows `ERR_ADDRESS_UNREACHABLE`, the browser hasn't been granted Local Network access. Open *System Settings → Privacy & Security → Local Network* and enable the browser (Arc, Chrome, etc.). Safari is implicitly trusted; `curl` inherits Terminal's grant.
+
+### Why not use `--publish`?
+
+Direct IP access on the default network is cleaner: no port-collision juggling with whatever else is running on your Mac, and `http://<container-ip>:<port>` is honest about where the service actually lives.
 
 ## Known Limitations
 
 - **No snapshots yet**: The `container` CLI doesn't expose VM snapshot/restore (though Virtualization.framework supports it)
 - **Pre-1.0**: API may change between versions
 - **Image unpacking**: Can be slow for large images
-- **IPv4-only network workaround**: `devbox-apple` creates and uses a dedicated IPv4-only network (`devbox-apple-net`, `192.168.100.0/24`) instead of the default network. Apple's `container` runtime assigns IPv6 ULAs via SLAAC but doesn't install an IPv6 default route — NAT66 is not yet implemented (see [apple/container#1034](https://github.com/apple/container/issues/1034)). Without this workaround, tools with weak Happy Eyeballs fallback (notably Node's `fetch`/`undici`, used by corepack/npm/pnpm) hang to timeout on IPv6 instead of retrying over IPv4. Remove the workaround once apple/container ships working IPv6 egress.
+- **Dockerfile size cap (~16KB)**: `container build` sends the Dockerfile in a gRPC header, which is bound by gRPC's 16KB default. Hitting the cap fails immediately with `Error: unavailable: "Stream unexpectedly closed."` (or `Transport became inactive` on older CLI versions) — see [apple/container#735](https://github.com/apple/container/issues/735). Workaround: keep the Dockerfile lean. Inline comments and blank lines count toward the limit, so when adding heavy explanatory prose, put it in a sibling notes file rather than inside the Dockerfile.
 
 ## Future Enhancements
 
@@ -216,6 +310,12 @@ container system status
 # View logs
 container system logs
 ```
+
+### `container build` fails with "Stream unexpectedly closed"
+
+Almost always means you've crossed the ~16KB Dockerfile size cap (gRPC header limit, [apple/container#735](https://github.com/apple/container/issues/735)). The build dies in milliseconds, before reaching buildkit — `container logs buildkit` will show no session for the failed attempt.
+
+Confirm by stripping inline comments / blank lines from the Dockerfile until the build succeeds. Long-form rationale belongs in this README or a notes file, not in the Dockerfile.
 
 ## References
 
