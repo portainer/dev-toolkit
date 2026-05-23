@@ -24,10 +24,6 @@ container --version
 container system status
 ```
 
-## Isolation Benefits
-
-Unlike OrbStack which [auto-mounts /Users and /Volumes](https://github.com/orbstack/orbstack/issues/169), Apple container only mounts what you explicitly configure. Each container runs in its own lightweight VM, providing true isolation without shared attack surfaces. This makes it suitable for running untrusted code (like AI agents) in a sandboxed environment.
-
 ## Install devbox-apple script
 
 **Note:** The `devbox-apple` script requires `zsh` (default shell on macOS).
