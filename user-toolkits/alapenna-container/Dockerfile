@@ -20,7 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
     file \
-    fzf \
     ripgrep \
     fd-find \
     bat \
@@ -45,9 +44,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf $(which fdfind) /usr/local/bin/fd \
-    && ln -sf $(which batcat) /usr/local/bin/bat \
+    && ln -sf $(which batcat) /usr/local/bin/bat
+
+# fzf: install latest upstream release. Debian's package (0.44.1) is too old
+# for the master shell/key-bindings.zsh, which uses flags like --wrap-sign
+# added in 0.49.0 — version skew makes Ctrl+R silently bail.
+RUN FZF_VERSION=$(curl -s "https://api.github.com/repos/junegunn/fzf/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') \
+    && ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "arm64" || echo "amd64") \
+    && curl -Lo fzf.tar.gz "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/fzf-${FZF_VERSION}-linux_${ARCH}.tar.gz" \
+    && tar xf fzf.tar.gz -C /usr/local/bin/ fzf \
+    && rm fzf.tar.gz \
     && mkdir -p /usr/share/fzf \
-    && curl -fsSL https://raw.githubusercontent.com/junegunn/fzf/refs/heads/master/shell/key-bindings.zsh -o /usr/share/fzf/key-bindings.zsh
+    && curl -fsSL "https://raw.githubusercontent.com/junegunn/fzf/v${FZF_VERSION}/shell/key-bindings.zsh" -o /usr/share/fzf/key-bindings.zsh
 
 # ============================================
 # zsh plugins (no oh-my-zsh) + starship prompt
@@ -305,9 +313,14 @@ setopt CORRECT               # Spelling correction for commands
 # ----------------------------------------
 # Key bindings
 # ----------------------------------------
-# Up/down arrow searches history with current prefix
+# Substring history search on Up/Down. Bind both the normal (`^[[A`) and
+# application-cursor (`^[OA`) escape sequences — apple/container's TTY
+# exec delivers `^[OA`, so binding only `^[[A` silently falls through to
+# the default `up-line-or-history` (plain chronological walk).
 bindkey '^[[A' history-substring-search-up
+bindkey '^[OA' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
+bindkey '^[OB' history-substring-search-down
 
 # fzf keybindings (Ctrl+R history, Ctrl+T files, Alt+C cd)
 source /usr/share/fzf/key-bindings.zsh
