@@ -277,6 +277,10 @@ Practical notes:
 - This trades a little discoverability (you need the IP) for honesty (no aliasing through localhost). And no port collisions with whatever else is running on your Mac.
 - **macOS Local Network permission is per-app.** If `curl` from the Mac reaches the container fine but a browser shows `ERR_ADDRESS_UNREACHABLE`, the browser hasn't been granted Local Network access. Open *System Settings → Privacy & Security → Local Network* and enable the browser (Arc, Chrome, etc.). Safari is implicitly trusted; `curl` inherits Terminal's grant.
 
+### No IPv6 egress (`RES_OPTIONS=no-aaaa`)
+
+The apple/container network has no IPv6 egress. Node's resolver still returns AAAA records (it skips `AI_ADDRCONFIG`), so `pnpm`/`npm`/`node` stall trying to connect to dead IPv6 addresses. The image sets `ENV RES_OPTIONS=no-aaaa` in the Dockerfile to tell glibc's resolver to skip AAAA queries entirely — applied at runtime to every shell, node, and pnpm process (and as a bonus to the build's `npm install`/`curl` steps).
+
 ### Why not use `--publish`?
 
 Direct IP access on the default network is cleaner: no port-collision juggling with whatever else is running on your Mac, and `http://<container-ip>:<port>` is honest about where the service actually lives.

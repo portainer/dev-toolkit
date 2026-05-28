@@ -7,6 +7,8 @@ ENV EDITOR=fresh
 ENV FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
 # Allows `claude --dangerously-skip-permissions` when running as root inside the container
 ENV IS_SANDBOX=1
+# Skip AAAA/IPv6 resolution (no IPv6 egress on apple/container) — see README "Networking"
+ENV RES_OPTIONS=no-aaaa
 
 # Detect architecture for binary downloads
 ARG TARGETARCH
