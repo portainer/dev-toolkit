@@ -254,8 +254,8 @@ setup_gh_auth() {
 # spawns `xcodebuildmcp mcp` per connection. Coupled to container lifecycle —
 # the matching stop_xcode_bridge tears it down on `stop`/`destroy`.
 # Hard-fails if prereqs are missing rather than silently skipping — the
-# in-container MCP server is pre-registered and would otherwise show up as
-# unhealthy with no obvious cause.
+# socket mount is baked into the container at create time, so `container
+# start`/`run` fails outright if this listener hasn't created the socket.
 start_xcode_bridge() {
   if ! command -v socat &>/dev/null; then
     echo "Error: socat not found on host." >&2

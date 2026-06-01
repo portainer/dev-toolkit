@@ -148,7 +148,7 @@ Authentication persists across container restarts.
 - **Terminal**: zsh, starship, fzf, ripgrep, fd, bat, eza
 - **Files**: yazi, zoxide, glow
 - **Editor**: fresh
-- **AI**: Claude Code with plugins (claude-hud) and pre-registered Xcode MCP server
+- **AI**: Claude Code with plugins (claude-hud) and an opt-in Xcode MCP server (`clx`)
 - **Scripts**: ccm (Claude commit message generator)
 
 ## Xcode MCP integration
@@ -157,7 +157,19 @@ Claude Code inside the container can drive Xcode tooling on the host via [xcodeb
 
 ### How it works
 
-`xcodebuildmcp` is a macOS-only stdio binary that shells out to `xcodebuild`, `xcrun`, `simctl`, and `devicectl` — it can't run inside the Linux container directly, and it doesn't expose a TCP port. Instead, `devbox-apple` runs a `socat` listener on the Mac that wraps `xcodebuildmcp mcp` behind a Unix socket, then mounts that socket into the container the same way `/var/run/docker.sock` is mounted. An MCP server entry pre-registered in the image (`claude mcp list` → `xcode`) relays Claude's stdio to the mounted socket via in-container `socat`.
+`xcodebuildmcp` is a macOS-only stdio binary that shells out to `xcodebuild`, `xcrun`, `simctl`, and `devicectl` — it can't run inside the Linux container directly, and it doesn't expose a TCP port. Instead, `devbox-apple` runs a `socat` listener on the Mac that wraps `xcodebuildmcp mcp` behind a Unix socket, then mounts that socket into the container the same way `/var/run/docker.sock` is mounted. Inside the container, an MCP config file at `/etc/xcode-mcp.json` relays Claude's stdio to the mounted socket via in-container `socat`.
+
+### Enabling it (opt-in, one session at a time)
+
+The Xcode MCP is **not** auto-loaded. Plain `claude` (or the `cl` alias) starts with no Xcode integration. To get it, launch Claude with the `clx` alias instead:
+
+```bash
+clx   # = claude --dangerously-skip-permissions --mcp-config /etc/xcode-mcp.json
+```
+
+This is deliberate. The host listener serves **one connection at a time** (`socat UNIX-LISTEN` without `fork`), so if every session auto-connected, a second Claude instance would contend for the single slot and knock the first one offline (`Failed to reconnect to xcode: -32000`). Making it opt-in means only the session you launch with `clx` touches the bridge.
+
+> Run `clx` in only **one** tab at a time. A second `clx` session will fight the first for the single slot. If you genuinely need two concurrent Xcode sessions, add `fork` to the `socat UNIX-LISTEN` line in `devbox-apple` (spawns one `xcodebuildmcp` per connection — watch out for two sessions driving the same simulator).
 
 ### Workflow scoping
 
@@ -181,10 +193,9 @@ Inside the container:
 
 ```bash
 ls -la /var/run/xcode-mcp.sock   # leading 's' = Unix socket, mount worked
-claude mcp list                  # 'xcode' should be listed
 ```
 
-Then start `claude` and run `/mcp` — `xcode` should be `connected`.
+Then start Claude with `clx` and run `/mcp` — `xcode` should be `connected`. (Plain `claude`/`cl` won't list it — that's expected; the server is only loaded via `clx`.)
 
 ### Troubleshooting
 

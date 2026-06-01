@@ -203,10 +203,9 @@ RUN ARCH=$(uname -m) \
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # ============================================
-# Xcode MCP server registration
+# Xcode MCP server (opt-in via `clx`, not auto-loaded)
 # ============================================
-RUN claude mcp add --scope user --transport stdio xcode -- \
-    socat - UNIX-CONNECT:/var/run/xcode-mcp.sock
+COPY conf/xcode-mcp.json /etc/xcode-mcp.json
 
 # ============================================
 # Claude Code plugins (via CLI)
@@ -346,6 +345,7 @@ alias l="eza -la --icons"
 alias br='fzf --preview "bat --color=always {}"'
 alias gp="git push"
 alias cl="claude --dangerously-skip-permissions"
+alias clx="claude --dangerously-skip-permissions --mcp-config /etc/xcode-mcp.json"
 
 dir() { eza --tree --level="${1:-1}" --icons; }
 
