@@ -4,6 +4,7 @@ ARG TARGETOS
 ARG TARGETARCH
 ARG GO_VERSION=1.26.2
 ARG GOLANGCI_LINT_VERSION=v2.12.1
+ARG GOPLS_VERSION=v0.22.0
 ARG DOCKER_VERSION=29.4.2
 ARG DOCKER_COMPOSE_VERSION=5.1.3
 ARG NODE_VERSION=24.15.0
@@ -73,6 +74,10 @@ RUN cd /tmp \
 
 # Install golangci-lint
 RUN curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b /root/go/bin ${GOLANGCI_LINT_VERSION}
+
+# Install gopls (Go language server for LSP support)
+RUN GOROOT=/usr/local/go GOPATH=/root/go GOBIN=/root/go/bin /usr/local/go/bin/go install golang.org/x/tools/gopls@${GOPLS_VERSION} \
+    && rm -rf /root/.cache/go-build /root/go/pkg/mod
 
 # Install NodeJS and Yarn
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash \

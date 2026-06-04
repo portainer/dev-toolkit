@@ -12,6 +12,7 @@ The Portainer dev-toolkit is a containerized development environment for Portain
 - **Docker CLI** (v29.4.2) + **Docker Compose** (v5.1.3) - Container management via mounted host socket
 - **Node.js** (v24.15.0) + **Yarn** (v1.22.22) - Portainer frontend development
 - **golangci-lint** (v2.12.1) - Go code linting
+- **gopls** (v0.22.0) - Go language server for LSP support
 
 ## Build Commands
 
