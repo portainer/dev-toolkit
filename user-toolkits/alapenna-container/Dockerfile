@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fd-find \
     bat \
     jq \
+    less \
     lsof \
     unzip \
     gnupg \
