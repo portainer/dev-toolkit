@@ -2,12 +2,12 @@ FROM ubuntu:24.04
 
 ARG TARGETOS
 ARG TARGETARCH
-ARG GO_VERSION=1.26.2
-ARG GOLANGCI_LINT_VERSION=v2.12.1
+ARG GO_VERSION=1.26.4
+ARG GOLANGCI_LINT_VERSION=v2.12.2
 ARG GOPLS_VERSION=v0.22.0
-ARG DOCKER_VERSION=29.4.2
-ARG DOCKER_COMPOSE_VERSION=5.1.3
-ARG NODE_VERSION=24.15.0
+ARG DOCKER_VERSION=29.5.3
+ARG DOCKER_COMPOSE_VERSION=5.1.4
+ARG NODE_VERSION=24.16.0
 ARG YARN_VERSION=1.22.22
 
 EXPOSE 8000 8999 9000 9443
@@ -80,7 +80,7 @@ RUN GOROOT=/usr/local/go GOPATH=/root/go GOBIN=/root/go/bin /usr/local/go/bin/go
     && rm -rf /root/.cache/go-build /root/go/pkg/mod
 
 # Install NodeJS and Yarn
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash \
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.5/install.sh | bash \
     && export NVM_DIR="$HOME/.nvm" \
     && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" \
     && nvm install ${NODE_VERSION} \
