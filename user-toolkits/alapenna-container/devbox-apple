@@ -36,6 +36,11 @@ GNUPG_DIR="$HOME/.gnupg"
 CONTAINER_CPUS=4
 CONTAINER_MEMORY="8g"
 
+# Public DNS for the container so it doesn't lean on the Mac's port-53 resolver
+# (mDNSResponder) — lets Cloudflare WARP coexist. Empty = inherit default.
+# Tradeoff: no private/Zero-Trust name resolution in the box. See README.
+DNS_SERVERS=(1.1.1.1 1.0.0.1)
+
 # Builder configuration (default: performance profile)
 BUILDER_CPUS=8
 BUILDER_MEMORY="8g"
@@ -390,6 +395,12 @@ cmd_enter() {
   start_xcode_bridge
   volume_args+=(--volume "$XCODE_MCP_SOCKET:/var/run/xcode-mcp.sock")
 
+  # Explicit DNS (see DNS_SERVERS note above); empty array = inherit default.
+  local dns_args=() dns
+  for dns in "${DNS_SERVERS[@]}"; do
+    dns_args+=(--dns "$dns")
+  done
+
   # Start container in detached mode
   # Note: Apple container uses FIXED allocation per VM (not shared like OrbStack)
   # Default is 1GB RAM / 4 CPUs - too low for dev work, so we override.
@@ -399,6 +410,7 @@ cmd_enter() {
     --memory "$CONTAINER_MEMORY" \
     --cpus "$CONTAINER_CPUS" \
     "${volume_args[@]}" \
+    "${dns_args[@]}" \
     --ssh \
     "$IMAGE"
 

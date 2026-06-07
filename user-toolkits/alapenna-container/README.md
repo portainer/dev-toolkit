@@ -292,6 +292,21 @@ Practical notes:
 
 The apple/container network has no IPv6 egress. Node's resolver still returns AAAA records (it skips `AI_ADDRCONFIG`), so `pnpm`/`npm`/`node` stall trying to connect to dead IPv6 addresses. The image sets `ENV RES_OPTIONS=no-aaaa` in the Dockerfile to tell glibc's resolver to skip AAAA queries entirely — applied at runtime to every shell, node, and pnpm process (and as a bonus to the build's `npm install`/`curl` steps).
 
+### Cloudflare WARP coexistence (`DNS_SERVERS`)
+
+apple/container normally resolves container DNS through a resolver on the Mac that surfaces as `mDNSResponder` holding port 53. Cloudflare WARP needs to own port 53 to run its own DNS proxy, so when both are active WARP fails to connect with:
+
+```
+CF_DNS_PROXY_FAILURE — A third-party process is performing DNS resolution
+on this device: mDNSResponder.
+```
+
+To let WARP start, free port 53 before connecting it: `container system stop` → connect WARP → `container system start`. But once WARP owns port 53, the container's default resolution path is gone — so the container needs an **explicit** resolver or it gets no DNS at all. That's what the `DNS_SERVERS` variable near the top of `devbox-apple` provides (default `1.1.1.1 1.0.0.1`), passed as `--dns` flags on `container run`.
+
+**Tradeoff:** a public resolver means the container resolves **public DNS only**. WARP / Zero-Trust *private* hostnames will not resolve inside the box — reach those internal services by direct IP. There is no `--dns` value that recovers private resolution: WARP's resolver is bound to the Mac's loopback (`127.0.0.2`/`127.0.0.3`), which is unreachable from the container's separate network namespace. The only way to get WARP-aware DNS inside the container would be to enroll the VM in WARP itself.
+
+To restore default (host-inherited) resolution instead — e.g. if you don't run WARP — set `DNS_SERVERS=()` empty.
+
 ### Why not use `--publish`?
 
 Direct IP access on the default network is cleaner: no port-collision juggling with whatever else is running on your Mac, and `http://<container-ip>:<port>` is honest about where the service actually lives.
