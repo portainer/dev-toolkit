@@ -270,6 +270,9 @@ RUN cat > $HOME/.claude/settings.json <<'EOF'
 }
 EOF
 
+# User-level CLAUDE.md (global instructions)
+COPY conf/CLAUDE.md /root/.claude/CLAUDE.md
+
 # ============================================
 # Git config
 # ============================================
