@@ -203,6 +203,9 @@ RUN ARCH=$(uname -m) \
 # ============================================
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
+# uv (Python pkg manager) — installs to /root/.local/bin, already on PATH
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/root/.local/bin sh
+
 # ============================================
 # Xcode MCP server (opt-in via `clx`, not auto-loaded)
 # ============================================
