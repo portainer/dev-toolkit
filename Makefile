@@ -1,5 +1,5 @@
-# Note: these can be overriden on the command line e.g. `make VERSION=2026.06`
-VERSION=2026.06
+# Note: these can be overriden on the command line e.g. `make VERSION=2026.09`
+VERSION=2026.09
 
 .PHONY: base-amd64 base-arm64 base alapenna alapenna-ghostty alapenna-container
 
