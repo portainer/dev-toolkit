@@ -258,6 +258,7 @@ RUN cat > $HOME/.claude/settings.json <<'EOF'
     "cdx@deviantony-plugins": true
   },
   "outputStyle": "Concise",
+  "promptSuggestionEnabled": false,
   "permissions": {
     "deny": [
       "Read(**/.env*)",
