@@ -257,6 +257,7 @@ RUN cat > $HOME/.claude/settings.json <<'EOF'
     "skill-creator@claude-plugins-official": true,
     "cdx@deviantony-plugins": true
   },
+  "outputStyle": "Concise",
   "permissions": {
     "deny": [
       "Read(**/.env*)",
