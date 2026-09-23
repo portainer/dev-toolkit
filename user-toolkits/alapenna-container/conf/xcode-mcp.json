@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "xcode": {
-      "command": "socat",
-      "args": ["-", "UNIX-CONNECT:/var/run/xcode-mcp.sock"]
-    }
-  }
-}

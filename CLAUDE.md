@@ -76,6 +76,10 @@ When the user reports an issue from a running devbox container, check `$DEVBOX_G
 
 If `make alapenna-container` (or any `container build` against `user-toolkits/alapenna-container/`) fails immediately with `Error: unavailable: "Stream unexpectedly closed."` — this is [apple/container#735](https://github.com/apple/container/issues/735), a ~16KB gRPC header cap on the Dockerfile. The CLI dies before buildkit ever sees the build. Comments and blank lines count toward the limit. Fix: shrink the Dockerfile (strip inline comments, move long-form rationale to the toolkit README). Do not bisect the Dockerfile content looking for a "bad" line — the file is structurally fine, it just exceeds the wire-level cap.
 
+## Xcode MCP Bridge (alapenna-container)
+
+`clx` inside the Apple container reaches Apple's `xcrun mcpbridge` on the Mac through `/var/run/xcode-mcp.sock`, a socket mount of `~/tmp/dev-toolkit/xcode-mcp.sock`. If connecting from the container gives `Connection reset by peer` while the Mac-side handshake through the same socket works, the socket was recreated after the container started — the container stays attached to the socket that existed at `container start`. Fix: `devbox-apple stop && devbox-apple`. Don't restart the host listener by hand while the container runs. Tool results return host paths under `$TMPDIR/ActionArtifacts` (screenshots, previews, logs), which are mounted read-only at the same path in the container. That mount must use `--mount type=virtiofs,...,readonly`: `container`'s `-v "$dir:$dir:ro"` mis-parses this path and mounts it at `.../ActionArtifactso`, read-write, so returned paths don't resolve. If a returned artifact path is missing, check `grep ActionArtifacts /proc/mounts`.
+
 ## Version Management
 
 Current version: `VERSION=2026.06` in Makefile. Releasing:

@@ -207,11 +207,6 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/root/.local/bin sh
 
 # ============================================
-# Xcode MCP server (opt-in via `clx`, not auto-loaded)
-# ============================================
-COPY conf/xcode-mcp.json /etc/xcode-mcp.json
-
-# ============================================
 # Claude Code plugins (via CLI)
 # ============================================
 RUN claude plugin marketplace add jarrodwatts/claude-hud \
@@ -352,7 +347,7 @@ alias l="eza -la --icons"
 alias br='fzf --preview "bat --color=always {}"'
 alias gp="git push"
 alias cl="claude --dangerously-skip-permissions"
-alias clx="claude --dangerously-skip-permissions --mcp-config /etc/xcode-mcp.json"
+alias clx="claude --dangerously-skip-permissions --plugin-dir /opt/xcode-plugin"
 
 dir() { eza --tree --level="${1:-1}" --icons; }
 

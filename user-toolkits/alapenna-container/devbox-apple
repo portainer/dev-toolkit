@@ -45,19 +45,17 @@ DNS_SERVERS=(1.1.1.1 1.0.0.1)
 BUILDER_CPUS=8
 BUILDER_MEMORY="8g"
 
-# Xcode MCP bridge (xcodebuildmcp on Xcode 16+). Lives under SHARE_TMP so
-# cleanup is colocated with the rest of devbox state. Lifecycle is tied to
-# the container via start_xcode_bridge / stop_xcode_bridge — there is no
-# always-on listener.
+# Xcode MCP bridge (Apple's `xcrun mcpbridge`, Xcode 27+). Lives under
+# SHARE_TMP so cleanup is colocated with the rest of devbox state. Lifecycle
+# is tied to the container via start_xcode_bridge / stop_xcode_bridge — there
+# is no always-on listener.
 XCODE_MCP_SOCKET="$SHARE_TMP/xcode-mcp.sock"
 XCODE_MCP_PIDFILE="$SHARE_TMP/.xcode-mcp.pid"
 XCODE_MCP_LOG="$SHARE_TMP/.xcode-mcp.log"
-# Scope xcodebuildmcp to iOS+macOS-relevant workflows (see
-# https://www.xcodebuildmcp.com/docs/workflows for the full list of 15).
-# Add `xcode-ide` to enable Xcode 26.3+ IDE-only features (preview rendering,
-# Issue Navigator) — that workflow proxies xcrun mcpbridge and requires the
-# Xcode Tools toggle in Xcode → Settings → Intelligence.
-XCODEBUILDMCP_WORKFLOWS="simulator,macos,session-management,project-discovery,device,debugging,swift-package,utilities,ui-automation"
+# Stable host copy of Xcode's Claude Code plugin (skills + .mcp.json).
+# Xcode materializes it under a build-numbered path that changes on every
+# Xcode update, so we sync it here on each start and mount this path instead.
+XCODE_PLUGIN_DIR="$HOME/.cache/devbox-apple/xcode-plugin"
 
 check_container_cli() {
   if ! command -v container &>/dev/null; then
@@ -222,9 +220,9 @@ setup_git_config() {
 # Replace the image's empty /workspace directory with a symlink to the real
 # bind-mount at $WORKSPACE_DIR.
 #
-# Why: xcodebuildmcp runs on the macOS host and only understands host-side
-# paths. By making the in-container mount live at the same absolute path as
-# the host, every path Claude reads from `pwd`, `find`, etc. is already a
+# Why: the Xcode MCP server runs on the macOS host and only understands
+# host-side paths (e.g. XcodeOpenWorkspace takes an absolute path). By making
+# the in-container mount live at the same absolute path as the host, every path Claude reads from `pwd`, `find`, etc. is already a
 # valid host path — no per-call translation. /workspace stays as a typing
 # shortcut for humans.
 #
@@ -255,8 +253,44 @@ setup_gh_auth() {
   container exec -ti "$NAME" gh auth login --git-protocol ssh --web --skip-ssh-key
 }
 
+# Host dir where Xcode's MCP tools write screenshots, preview snapshots, UI
+# hierarchies and full logs. Tool results return absolute paths into it, so
+# it's mounted read-only at the SAME path in the container (same trick as the
+# workspace mirror) and those paths open as-is. DARWIN_USER_TEMP_DIR is
+# stable per user and ends with a slash.
+xcode_artifacts_dir() {
+  echo "$(getconf DARWIN_USER_TEMP_DIR)ActionArtifacts"
+}
+
+# Copy Xcode's packaged Claude Code plugin (`xcode-integration`: Apple's
+# agent skills + MCP config) to a stable host path, then point its .mcp.json
+# at the in-container socket relay — the shipped one runs `xcrun mcpbridge`,
+# which doesn't exist in the container. Runs on every create/resume so an
+# Xcode update refreshes the skills without a rebuild.
+sync_xcode_plugin() {
+  local src
+  if ! src=$(xcrun agent plugin path --plugin-format claude 2>/dev/null) || [[ ! -d "$src" ]]; then
+    echo "Error: could not materialize Xcode's Claude plugin (xcrun agent plugin path)." >&2
+    echo "Requires Xcode 27+ selected via xcode-select." >&2
+    exit 1
+  fi
+  mkdir -p "$XCODE_PLUGIN_DIR"
+  rsync -aL --delete "$src/" "$XCODE_PLUGIN_DIR/"
+  cat > "$XCODE_PLUGIN_DIR/.mcp.json" <<'EOF'
+{
+  "mcpServers": {
+    "xcode": {
+      "type": "stdio",
+      "command": "socat",
+      "args": ["-", "UNIX-CONNECT:/var/run/xcode-mcp.sock"]
+    }
+  }
+}
+EOF
+}
+
 # Start the Xcode MCP bridge on the host: a backgrounded socat listener that
-# spawns `xcodebuildmcp mcp` per connection. Coupled to container lifecycle —
+# spawns `xcrun mcpbridge` per connection. Coupled to container lifecycle —
 # the matching stop_xcode_bridge tears it down on `stop`/`destroy`.
 # Hard-fails if prereqs are missing rather than silently skipping — the
 # socket mount is baked into the container at create time, so `container
@@ -267,10 +301,16 @@ start_xcode_bridge() {
     echo "Install with: brew install socat" >&2
     exit 1
   fi
-  if ! command -v xcodebuildmcp &>/dev/null; then
-    echo "Error: xcodebuildmcp not found on host." >&2
-    echo "Install with: brew install getsentry/xcodebuildmcp/xcodebuildmcp" >&2
+  if ! xcrun --find mcpbridge &>/dev/null; then
+    echo "Error: xcrun mcpbridge not found on host." >&2
+    echo "Requires Xcode 27+ selected via xcode-select." >&2
     exit 1
+  fi
+  # Headless mode lets the tools work with Xcode closed. Without it they
+  # still work while Xcode is open, so warn rather than fail.
+  if ! xcrun mcp-server status 2>/dev/null | grep -q '^Permission: enabled'; then
+    echo "Warning: Xcode headless MCP mode is off — tools only work while Xcode is open." >&2
+    echo "Enable with: sudo xcrun mcp-server enable" >&2
   fi
 
   # Reap any stale state (orphaned PID file or socket from a prior unclean exit)
@@ -279,25 +319,23 @@ start_xcode_bridge() {
   mkdir -p "$(dirname "$XCODE_MCP_SOCKET")"
 
   echo "Starting Xcode MCP bridge listener..."
-  # Supervisor loop instead of socat's `fork`. Without fork, socat handles
-  # exactly one connection at a time — and on connection close, both socat
-  # and its EXEC'd xcodebuildmcp child exit cleanly via SIGTERM propagation.
-  # The while loop then re-listens for the next Claude session. Net effect:
-  # at most one xcodebuildmcp alive at any moment, no orphan accumulation,
-  # no idle-timeout workaround needed.
-  nohup env \
-      XCODEBUILDMCP_ENABLED_WORKFLOWS="$XCODEBUILDMCP_WORKFLOWS" \
-      XCODEBUILDMCP_SENTRY_DISABLED=true \
-      XCODE_MCP_SOCKET="$XCODE_MCP_SOCKET" \
-    bash -c '
-      while socat "UNIX-LISTEN:${XCODE_MCP_SOCKET},mode=600" "EXEC:xcodebuildmcp mcp"; do :; done
-    ' > "$XCODE_MCP_LOG" 2>&1 &
+  # One persistent listener with `fork`: each Claude session gets its own
+  # mcpbridge, so concurrent `clx` sessions work. The socket must NOT be
+  # recreated while the container runs — the container stays attached to the
+  # socket that existed at `container start`, and a recreated one leaves it
+  # talking to a dead endpoint (connect succeeds, then resets). `pipes` gives
+  # mcpbridge plain pipes instead of socat's default socketpair for stdio —
+  # the configuration this was validated with.
+  nohup socat \
+    "UNIX-LISTEN:${XCODE_MCP_SOCKET},mode=600,unlink-early,fork" \
+    "EXEC:xcrun mcpbridge,pipes" \
+    > "$XCODE_MCP_LOG" 2>&1 &
   echo $! > "$XCODE_MCP_PIDFILE"
 
-  # Wait for socat to actually bind the socket before returning. The supervisor
-  # is nohup'd, so there's a small async window (bash startup → loop → socat
-  # bind) during which the socket file doesn't exist. Without this wait,
-  # `container start`/`container run` immediately after can fail with:
+  # Wait for socat to actually bind the socket before returning. The listener
+  # is nohup'd, so there's a small async window during which the socket file
+  # doesn't exist. Without this wait, `container start`/`container run`
+  # immediately after can fail with:
   #     Error: mount source path '$XCODE_MCP_SOCKET' does not exist
   local attempts=0 max_attempts=50
   while [[ ! -S "$XCODE_MCP_SOCKET" ]]; do
@@ -316,11 +354,11 @@ stop_xcode_bridge() {
     local pid
     pid=$(cat "$XCODE_MCP_PIDFILE" 2>/dev/null || echo "")
     if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
-      # Kill the supervisor first so the loop stops re-spawning socat.
-      # Then kill any in-flight socat child (which on SIGTERM cascades to
-      # xcodebuildmcp via socat's EXEC shutdown handler).
-      kill "$pid" 2>/dev/null || true
+      # Kill forked per-connection socat children first (each one's SIGTERM
+      # cascades to its mcpbridge via socat's EXEC shutdown handler), then
+      # the listener itself.
       pkill -P "$pid" 2>/dev/null || true
+      kill "$pid" 2>/dev/null || true
     fi
     rm -f "$XCODE_MCP_PIDFILE"
   fi
@@ -340,7 +378,10 @@ cmd_enter() {
   if container_exists; then
     echo "Starting stopped container..."
     # Restart the bridge so the in-container socket mount has something to
-    # connect to. The volume mount itself was baked in at create time.
+    # connect to, and refresh the Xcode plugin copy. The volume mounts
+    # themselves were baked in at create time.
+    sync_xcode_plugin
+    mkdir -p "$(xcode_artifacts_dir)"
     start_xcode_bridge
     container start "$NAME"
     wait_for_container_ready || exit 1
@@ -355,7 +396,7 @@ cmd_enter() {
 
   # Build volume arguments.
   # Workspace is bind-mounted at the SAME absolute path as on the host so that
-  # paths Claude passes to host-side MCP tools (xcodebuildmcp) resolve
+  # paths Claude passes to host-side MCP tools (xcrun mcpbridge) resolve
   # identically on both sides. /workspace remains usable as a shorthand via a
   # symlink set up in setup_workspace_alias.
   local volume_args=(
@@ -390,6 +431,18 @@ cmd_enter() {
   echo "Docker socket detected at $docker_sock_src - mounting for Docker CLI access"
   volume_args+=(--volume "$docker_sock_src:/var/run/docker.sock")
 
+  # Xcode's Claude plugin (skills + MCP config, loaded by `clx`) and the
+  # tool-artifacts dir (mirrored path, see xcode_artifacts_dir). Both
+  # read-only: the container only consumes them.
+  sync_xcode_plugin
+  volume_args+=(--volume "$XCODE_PLUGIN_DIR:/opt/xcode-plugin:ro")
+  local artifacts_dir
+  artifacts_dir=$(xcode_artifacts_dir)
+  mkdir -p "$artifacts_dir"
+  # --mount, not --volume: `container` mis-parses `-v "$dir:$dir:ro"` for this
+  # path (mounts at ".../ActionArtifactso", read-write).
+  volume_args+=(--mount "type=virtiofs,source=$artifacts_dir,target=$artifacts_dir,readonly")
+
   # Start the Xcode MCP bridge on the host (hard-fails if prereqs missing)
   # and mount its socket into the container.
   start_xcode_bridge
@@ -422,7 +475,7 @@ cmd_enter() {
   # Copy git config from host
   setup_git_config
 
-  # Mirror host workspace path inside container (for host-side MCP tools like xcodebuildmcp)
+  # Mirror host workspace path inside container (for host-side MCP tools like xcrun mcpbridge)
   setup_workspace_alias
 
   # Setup GitHub CLI authentication
@@ -702,7 +755,9 @@ cmd_help() {
   echo "  $WORKSPACE_DIR -> $WORKSPACE_DIR (mirrored path; /workspace symlinks here)"
   echo "  $SHARE_TMP -> /share-tmp"
   echo "  /var/run/docker.sock -> /var/run/docker.sock (if available)"
-  echo "  $XCODE_MCP_SOCKET -> /var/run/xcode-mcp.sock (xcodebuildmcp on host)"
+  echo "  $XCODE_MCP_SOCKET -> /var/run/xcode-mcp.sock (xcrun mcpbridge on host)"
+  echo "  $XCODE_PLUGIN_DIR -> /opt/xcode-plugin (read-only; Xcode's Claude plugin, loaded by clx)"
+  echo "  \$(getconf DARWIN_USER_TEMP_DIR)ActionArtifacts -> same path (read-only; Xcode MCP screenshots/logs)"
   echo ""
   echo "Networking:"
   echo "  Container is on apple/container's default network."

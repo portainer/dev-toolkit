@@ -7,11 +7,11 @@ A development environment using Apple's native container CLI on macOS 26+.
 - macOS 26 (Tahoe) or later
 - Apple Silicon Mac
 - zsh shell (default on macOS)
-- Xcode 16 or later with command-line tools
-- [`xcodebuildmcp`](https://www.xcodebuildmcp.com/) on the host (`brew install getsentry/xcodebuildmcp/xcodebuildmcp`) — the MCP server that backs the in-container Xcode integration
-- `socat` on the host (`brew install socat`) — used to expose `xcodebuildmcp` over a Unix socket the container can reach
+- Xcode 27 or later, selected via `xcode-select` — provides `xcrun mcpbridge`, the MCP server that backs the in-container Xcode integration
+- `socat` on the host (`brew install socat`) — used to expose `xcrun mcpbridge` over a Unix socket the container can reach
+- Xcode headless MCP mode enabled once (`sudo xcrun mcp-server enable`) — lets the tools work with Xcode closed. Optional but recommended; `devbox-apple` warns if it's off
 
-`devbox-apple` will refuse to start the container if `socat` or `xcodebuildmcp` is missing. If you don't want the Xcode integration, edit `devbox-apple` and remove the `start_xcode_bridge` calls in `cmd_enter`.
+`devbox-apple` will refuse to start the container if `socat` or `xcrun mcpbridge` is missing. If you don't want the Xcode integration, edit `devbox-apple` and remove the `start_xcode_bridge` / `sync_xcode_plugin` calls and the related mounts in `cmd_enter`.
 
 ## Installing Apple Container CLI
 
@@ -71,6 +71,8 @@ devbox-apple
 | `~/tmp/dev-toolkit` | `/share-tmp` | read-write |
 | `/var/run/docker.sock` | `/var/run/docker.sock` | read-write (auto-detected) |
 | `~/tmp/dev-toolkit/xcode-mcp.sock` | `/var/run/xcode-mcp.sock` | Xcode MCP bridge socket (managed by `devbox-apple`) |
+| `~/.cache/devbox-apple/xcode-plugin` | `/opt/xcode-plugin` | read-only — Xcode's Claude Code plugin, refreshed on every start |
+| `$(getconf DARWIN_USER_TEMP_DIR)ActionArtifacts` | same path | read-only — Xcode MCP screenshots, previews, UI hierarchies, logs |
 
 These directories are mounted and changes sync immediately between host and container. The Docker socket is mounted automatically when detected on the host. The Xcode MCP socket is created by `devbox-apple` on container start and torn down on stop — see [Xcode MCP integration](#xcode-mcp-integration) below.
 
@@ -148,32 +150,44 @@ Authentication persists across container restarts.
 - **Terminal**: zsh, starship, fzf, ripgrep, fd, bat, eza
 - **Files**: yazi, zoxide, glow
 - **Editor**: fresh
-- **AI**: Claude Code with plugins (claude-hud) and an opt-in Xcode MCP server (`clx`)
+- **AI**: Claude Code with plugins (claude-hud) and opt-in Xcode integration (`clx`)
 - **Scripts**: ccm (Claude commit message generator)
 
 ## Xcode MCP integration
 
-Claude Code inside the container can drive Xcode tooling on the host via [xcodebuildmcp](https://www.xcodebuildmcp.com/) — an MCP server that exposes ~79 tools across iOS, macOS, watchOS, tvOS, and visionOS workflows.
+Claude Code inside the container can drive Xcode on the host through Apple's own MCP server (`xcrun mcpbridge`, Xcode 27+). It exposes ~50 tools: build and run, tests, SwiftUI preview rendering, Swift snippets, LLDB, simulator and device interaction (tap/swipe/type with screenshot + accessibility hierarchy capture), schemes and run destinations, build settings, entitlements, Info.plist, String Catalogs, and project/target creation. `clx` also loads Apple's `xcode-integration` Claude plugin, which ships the matching agent skills (`device-interaction`, `swiftui-specialist`, `translation`, `modernize-tests`, accessibility, …).
 
 ### How it works
 
-`xcodebuildmcp` is a macOS-only stdio binary that shells out to `xcodebuild`, `xcrun`, `simctl`, and `devicectl` — it can't run inside the Linux container directly, and it doesn't expose a TCP port. Instead, `devbox-apple` runs a `socat` listener on the Mac that wraps `xcodebuildmcp mcp` behind a Unix socket, then mounts that socket into the container the same way `/var/run/docker.sock` is mounted. Inside the container, an MCP config file at `/etc/xcode-mcp.json` relays Claude's stdio to the mounted socket via in-container `socat`.
+`mcpbridge` is a macOS-only stdio binary that talks to Xcode over XPC — it can't run inside the Linux container, and it doesn't expose a TCP port. Instead, `devbox-apple` runs a `socat` listener on the Mac that spawns `xcrun mcpbridge` per connection behind a Unix socket, then mounts that socket into the container the same way `/var/run/docker.sock` is mounted.
 
-### Enabling it (opt-in, one session at a time)
+On every create/resume, `devbox-apple` also copies Xcode's packaged Claude plugin (`xcrun agent plugin path --plugin-format claude`) to `~/.cache/devbox-apple/xcode-plugin` and rewrites its `.mcp.json` to relay stdio to the mounted socket via in-container `socat` (the shipped one runs `xcrun mcpbridge`, which doesn't exist in the container). Xcode materializes the plugin under a build-numbered path, so the stable copy is what gets mounted — an Xcode update is picked up on the next `devbox-apple stop && devbox-apple`, no rebuild.
 
-The Xcode MCP is **not** auto-loaded. Plain `claude` (or the `cl` alias) starts with no Xcode integration. To get it, launch Claude with the `clx` alias instead:
+Tool results return **host** file paths for screenshots, preview snapshots, UI hierarchies and full logs (under `$TMPDIR/ActionArtifacts`). That directory is mounted read-only at the same absolute path in the container, so those paths open as-is — this is what lets Claude visually verify UI changes.
+
+### Headless mode and approvals
+
+With headless mode on (`sudo xcrun mcp-server enable`, once), the tools work with Xcode closed: the headless service launches on demand. Without it, they only work against a running Xcode.
+
+The first time an agent opens a project (`XcodeOpenWorkspace`), macOS asks you to approve the agent and that project's folder — choose **Always Allow**. Tools other than open/create refuse to run until then. To pre-approve every project under the workspace in one go:
 
 ```bash
-clx   # = claude --dangerously-skip-permissions --mcp-config /etc/xcode-mcp.json
+sudo xcrun mcp-server allow-folder ~/workspaces/applecntr-workspace --always
 ```
 
-This is deliberate. The host listener serves **one connection at a time** (`socat UNIX-LISTEN` without `fork`), so if every session auto-connected, a second Claude instance would contend for the single slot and knock the first one offline (`Failed to reconnect to xcode: -32000`). Making it opt-in means only the session you launch with `clx` touches the bridge.
+Grants are managed with `xcrun mcp-server status`, `sudo xcrun mcp-server deny <id>` and `sudo xcrun mcp-server clear-permissions`.
 
-> Run `clx` in only **one** tab at a time. A second `clx` session will fight the first for the single slot. If you genuinely need two concurrent Xcode sessions, add `fork` to the `socat UNIX-LISTEN` line in `devbox-apple` (spawns one `xcodebuildmcp` per connection — watch out for two sessions driving the same simulator).
+### Enabling it (opt-in)
 
-### Workflow scoping
+The Xcode integration is **not** auto-loaded. Plain `claude` (or the `cl` alias) is a vanilla session — use it for non-Apple work. For Apple projects, launch Claude with `clx`:
 
-The bridge is scoped to iOS+macOS-relevant workflows by default via `XCODEBUILDMCP_ENABLED_WORKFLOWS`. To adjust, edit `XCODEBUILDMCP_WORKFLOWS` near the top of `devbox-apple` — see the [workflows reference](https://www.xcodebuildmcp.com/docs/workflows) for the full list. To enable Xcode IDE-only features (preview rendering, Issue Navigator, doc search), add `xcode-ide` to the list — that workflow proxies `xcrun mcpbridge` under the hood and requires Xcode 26.3+ with the **Xcode Tools** toggle in *Xcode → Settings → Intelligence*.
+```bash
+clx   # = claude --dangerously-skip-permissions --plugin-dir /opt/xcode-plugin
+```
+
+The listener uses `socat … fork`, so several `clx` sessions can run at once (each gets its own `mcpbridge`). Two sessions driving the same simulator will still step on each other.
+
+Simulator interaction sessions (`DeviceInteraction*`) expire after a few idle minutes (`Session not found`). Claude just starts a new one.
 
 ### Lifecycle
 
@@ -181,11 +195,13 @@ The bridge is tied to the container — there is no always-on listener on the Ma
 
 | `devbox-apple` action | Bridge effect |
 |-----------------------|---------------|
-| Create container (first run) | Spawns `socat` listener, bakes the socket mount into the container |
-| Resume stopped container | Re-spawns `socat` listener (mount was baked in at create time) |
+| Create container (first run) | Spawns `socat` listener, syncs the plugin, bakes the socket/plugin/artifacts mounts into the container |
+| Resume stopped container | Re-spawns `socat` listener and re-syncs the plugin (mounts were baked in at create time) |
 | `devbox-apple stop` | Kills the listener, removes socket and PID files |
 | `devbox-apple destroy` | Same teardown as `stop` |
 | External `container stop devbox-apple` | Listener orphans; reaped on next `devbox-apple` start or stop |
+
+> The socket must exist **before** `container start`, and must not be recreated while the container runs. The container stays attached to the socket that existed at start; a socket recreated at the same path leaves it talking to a dead endpoint (connect succeeds, then `Connection reset by peer`). If you restart the listener by hand, restart the container too: `devbox-apple stop && devbox-apple`.
 
 ### Verifying the connection
 
@@ -193,19 +209,25 @@ Inside the container:
 
 ```bash
 ls -la /var/run/xcode-mcp.sock   # leading 's' = Unix socket, mount worked
+ls /opt/xcode-plugin/skills      # Apple's skills are mounted
 ```
 
-Then start Claude with `clx` and run `/mcp` — `xcode` should be `connected`. (Plain `claude`/`cl` won't list it — that's expected; the server is only loaded via `clx`.)
+Then start Claude with `clx` and run `/mcp` — the plugin's `xcode` server should be `connected`. (Plain `claude`/`cl` won't list it — that's expected.)
 
 ### Troubleshooting
 
-Bridge log on the Mac (most useful first stop for any "xcode failed to reconnect" / unhealthy MCP issue):
+Bridge log on the Mac (socat errors and `mcpbridge` stderr):
 
 ```bash
 tail -f ~/tmp/dev-toolkit/.xcode-mcp.log
 ```
 
-What it shows: `xcodebuildmcp` startup banner and registered workflows, per-call traces, errors from the host-side server. If the log is empty, the listener didn't start — check `socat` and `xcodebuildmcp` are on `$PATH` on the Mac.
+Xcode's side — headless service state, pending approval requests, open workspaces, and the agent activity log:
+
+```bash
+xcrun mcp-server status
+less "$(xcrun mcp-server show-logs)"
+```
 
 Other quick checks:
 
@@ -213,20 +235,37 @@ Other quick checks:
 # Mac: is the listener running?
 cat ~/tmp/dev-toolkit/.xcode-mcp.pid && ps -p "$(cat ~/tmp/dev-toolkit/.xcode-mcp.pid)"
 
-# Mac: connect manually to confirm the socket end-to-end
-socat - UNIX-CONNECT:$HOME/tmp/dev-toolkit/xcode-mcp.sock
-
-# Container: socket present and is a socket (leading 's')?
-ls -la /var/run/xcode-mcp.sock
+# Mac: MCP handshake end-to-end through the socket (keep stdin open so it can reply)
+(printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"probe","version":"0"}}}'; sleep 5) \
+  | socat - UNIX-CONNECT:$HOME/tmp/dev-toolkit/xcode-mcp.sock
 ```
 
-If the bridge is wedged, `devbox-apple stop && devbox-apple` re-spawns the listener cleanly.
+If the Mac-side handshake works but the container gets `Connection reset by peer`, the socket was recreated after the container started — `devbox-apple stop && devbox-apple`.
 
 ### Security properties
 
 - Socket lives at mode `600` in `~/tmp/dev-toolkit/` — only your user can connect.
 - No network port, no remote login enabled on the host.
-- `xcodebuildmcp` is spawned per-connection with the same blast radius as you running it manually.
+- Xcode gates access per agent and per project folder (see approvals above); headless mode is off until you `sudo` enable it.
+- The plugin and artifacts mounts are read-only.
+
+### Migrating from XcodeBuildMCP
+
+Earlier versions of this toolkit used [XcodeBuildMCP](https://www.xcodebuildmcp.com/). To switch:
+
+```bash
+# On the Mac
+sudo xcrun mcp-server enable
+brew uninstall xcodebuildmcp
+brew untap getsentry/xcodebuildmcp
+claude mcp list                # host Claude, if installed: remove any XcodeBuildMCP entry
+rm -rf ~/.xcodebuildmcp        # leftover config, if present
+
+# Recreate the container (new mounts are baked in at create time) with the new image
+cp devbox-apple ~/.local/bin/
+devbox-apple rebuild
+devbox-apple
+```
 
 ## Builder Configuration
 
