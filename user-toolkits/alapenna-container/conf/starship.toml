@@ -1,0 +1,40 @@
+format = """
+$directory\
+$hostname\
+$git_branch\
+$git_status\
+$line_break\
+$character"""
+
+[directory]
+style = "cyan bold"
+truncation_length = 5
+truncate_to_repo = false
+
+[hostname]
+ssh_only = false
+format = "[@ $hostname]($style)"
+style = "yellow bold"
+
+[git_branch]
+style = "purple bold"
+format = "[ │ $symbol$branch]($style)"
+symbol = ""
+
+[git_status]
+style = "red bold"
+format = "[$all_status$ahead_behind]($style)"
+conflicted = "="
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕"
+untracked = "?"
+stashed = ""
+modified = "!"
+staged = "+"
+renamed = "»"
+deleted = "✘"
+
+[character]
+success_symbol = "[>](green bold)"
+error_symbol = "[>](red bold)"

@@ -355,7 +355,7 @@ Direct IP access on the default network is cleaner: no port-collision juggling w
 - **No snapshots yet**: The `container` CLI doesn't expose VM snapshot/restore (though Virtualization.framework supports it)
 - **Pre-1.0**: API may change between versions
 - **Image unpacking**: Can be slow for large images
-- **Dockerfile size cap (~16KB)**: `container build` sends the Dockerfile in a gRPC header, which is bound by gRPC's 16KB default. Hitting the cap fails immediately with `Error: unavailable: "Stream unexpectedly closed."` (or `Transport became inactive` on older CLI versions) — see [apple/container#735](https://github.com/apple/container/issues/735). Workaround: keep the Dockerfile lean. Inline comments and blank lines count toward the limit, so when adding heavy explanatory prose, put it in a sibling notes file rather than inside the Dockerfile.
+- **Dockerfile size cap (~16KB)**: `container build` sends the Dockerfile in a gRPC header, which is bound by gRPC's 16KB default. Hitting the cap fails immediately with `Error: unavailable: "Stream unexpectedly closed."` (or `Transport became inactive` on older CLI versions) — see [apple/container#735](https://github.com/apple/container/issues/735). Workaround: keep the Dockerfile lean. Inline comments and blank lines count toward the limit, so when adding heavy explanatory prose, put it in a sibling notes file rather than inside the Dockerfile. Config files (zshrc, starship, Claude settings, etc.) live in `conf/` and are added with `COPY`; don't inline them as heredocs. The cap has been observed to trip as low as ~15.1KB, so treat 15KB as the practical ceiling.
 
 ## Future Enhancements
 

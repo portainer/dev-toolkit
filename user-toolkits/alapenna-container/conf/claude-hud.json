@@ -1,0 +1,19 @@
+{
+  "layout": "default",
+  "display": {
+    "showModel": true,
+    "showContextBar": true,
+    "showTools": false,
+    "showAgents": true,
+    "showTodos": true,
+    "showConfigCounts": false,
+    "showTokenBreakdown": true,
+    "showUsage": true,
+    "showDuration": false
+  },
+  "gitStatus": {
+    "enabled": true,
+    "showDirty": true,
+    "showAheadBehind": true
+  }
+}

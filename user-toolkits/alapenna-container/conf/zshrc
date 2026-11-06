@@ -1,0 +1,94 @@
+# ----------------------------------------
+# Zsh plugins (no oh-my-zsh framework)
+# ----------------------------------------
+source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source ~/.zsh/zsh-history-substring-search/zsh-history-substring-search.zsh
+
+# ----------------------------------------
+# History configuration
+# ----------------------------------------
+HISTFILE=~/.zsh_history
+HISTSIZE=50000
+SAVEHIST=50000
+setopt HIST_IGNORE_ALL_DUPS  # Remove older duplicate entries
+setopt HIST_FIND_NO_DUPS     # Don't show duplicates when searching
+setopt SHARE_HISTORY         # Share history across terminals
+setopt INC_APPEND_HISTORY    # Add commands immediately
+
+# ----------------------------------------
+# Shell options
+# ----------------------------------------
+setopt AUTO_CD               # Type directory name to cd into it
+setopt AUTO_PUSHD            # cd pushes to directory stack
+setopt PUSHD_IGNORE_DUPS     # Don't push duplicates
+setopt CORRECT               # Spelling correction for commands
+
+# ----------------------------------------
+# Key bindings
+# ----------------------------------------
+# Substring history search on Up/Down. Bind both the normal (`^[[A`) and
+# application-cursor (`^[OA`) escape sequences — apple/container's TTY
+# exec delivers `^[OA`, so binding only `^[[A` silently falls through to
+# the default `up-line-or-history` (plain chronological walk).
+bindkey '^[[A' history-substring-search-up
+bindkey '^[OA' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+bindkey '^[OB' history-substring-search-down
+
+# fzf keybindings (Ctrl+R history, Ctrl+T files, Alt+C cd)
+source /usr/share/fzf/key-bindings.zsh
+
+# ----------------------------------------
+# Tool integrations
+# ----------------------------------------
+eval "$(zoxide init zsh)"
+eval "$(starship init zsh)"
+
+# ----------------------------------------
+# Aliases
+# ----------------------------------------
+alias lg="lazygit"
+alias y="yazi"
+alias f="fresh"
+alias e='file=$(fd --type f --hidden --no-ignore --follow --exclude .git | fzf) && [ -n "$file" ] && fresh "$file"'
+alias yf='d=$(fd --type d --hidden --no-ignore --follow --exclude .git | fzf) && [ -n "$d" ] && yazi "$d"'
+alias cat="bat --paging=never"
+alias l="eza -la --icons"
+alias br='fzf --preview "bat --color=always {}"'
+alias gp="git push"
+alias cl="claude --dangerously-skip-permissions"
+alias clx="claude --dangerously-skip-permissions --plugin-dir /opt/xcode-plugin"
+
+dir() { eza --tree --level="${1:-1}" --icons; }
+
+# ----------------------------------------
+# Help command for aliases
+# ----------------------------------------
+ha() {
+  echo "
+  Navigation & Files
+    l           List files (eza -la --icons)
+    dir [N]     Tree view, depth N (default: 1)
+    br          Browse files with preview (fzf + bat)
+    e           Fuzzy find + open in editor
+    y           Yazi file manager
+    yf          Fuzzy find folder + open in yazi
+
+  Tools
+    lg          Lazygit
+    f           Fresh editor
+    cat         Bat (syntax highlighting)
+
+  Keybindings
+    Ctrl+R      Fuzzy search command history
+    Ctrl+T      Fuzzy find file, insert path
+    Alt+C       Fuzzy find directory and cd
+    Up/Down     Search history with current prefix
+
+  Productivity
+    ccm         Claude commit message
+    cl          Claude (skip permissions)
+"
+}
+

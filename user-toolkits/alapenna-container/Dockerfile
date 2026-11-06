@@ -71,48 +71,7 @@ RUN mkdir -p /root/.zsh \
     && curl -sS https://starship.rs/install.sh | sh -s -- -y
 
 # Starship config (two-line minimal)
-RUN mkdir -p /root/.config && cat > /root/.config/starship.toml <<'EOF'
-format = """
-$directory\
-$hostname\
-$git_branch\
-$git_status\
-$line_break\
-$character"""
-
-[directory]
-style = "cyan bold"
-truncation_length = 5
-truncate_to_repo = false
-
-[hostname]
-ssh_only = false
-format = "[@ $hostname]($style)"
-style = "yellow bold"
-
-[git_branch]
-style = "purple bold"
-format = "[ │ $symbol$branch]($style)"
-symbol = ""
-
-[git_status]
-style = "red bold"
-format = "[$all_status$ahead_behind]($style)"
-conflicted = "="
-ahead = "⇡${count}"
-behind = "⇣${count}"
-diverged = "⇕"
-untracked = "?"
-stashed = ""
-modified = "!"
-staged = "+"
-renamed = "»"
-deleted = "✘"
-
-[character]
-success_symbol = "[>](green bold)"
-error_symbol = "[>](red bold)"
-EOF
+COPY conf/starship.toml /root/.config/starship.toml
 
 # ============================================
 # fresh (terminal editor with LSP)
@@ -123,14 +82,8 @@ RUN FRESH_VERSION=$(curl -s "https://api.github.com/repos/sinelaw/fresh/releases
     && dpkg -i fresh.deb \
     && rm fresh.deb \
     && npm install -g typescript-language-server typescript \
-    && npm cache clean --force \
-    && mkdir -p /root/.config/fresh && cat > /root/.config/fresh/config.json <<'EOF'
-{
-  "editor": {
-    "tab_size": 2
-  }
-}
-EOF
+    && npm cache clean --force
+COPY conf/fresh.json /root/.config/fresh/config.json
 
 # ============================================
 # CLI tools (lazygit, delta, yazi, zoxide, eza)
@@ -220,55 +173,8 @@ RUN claude plugin marketplace add jarrodwatts/claude-hud \
     && claude plugin install cdx@deviantony-plugins
 
 # Claude Code config files
-RUN mkdir -p $HOME/.claude/plugins/claude-hud \
-    && cat > $HOME/.claude/plugins/claude-hud/config.json <<'EOF'
-{
-  "layout": "default",
-  "display": {
-    "showModel": true,
-    "showContextBar": true,
-    "showTools": false,
-    "showAgents": true,
-    "showTodos": true,
-    "showConfigCounts": false,
-    "showTokenBreakdown": true,
-    "showUsage": true,
-    "showDuration": false
-  },
-  "gitStatus": {
-    "enabled": true,
-    "showDirty": true,
-    "showAheadBehind": true
-  }
-}
-EOF
-
-RUN cat > $HOME/.claude/settings.json <<'EOF'
-{
-  "statusLine": {
-    "type": "command",
-    "command": "node \"$(ls -td ~/.claude/plugins/cache/claude-hud/claude-hud/*/ 2>/dev/null | head -1)dist/index.js\""
-  },
-  "enabledPlugins": {
-    "claude-hud@claude-hud": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true,
-    "swift-lsp@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": true,
-    "cdx@deviantony-plugins": true
-  },
-  "outputStyle": "Concise",
-  "promptSuggestionEnabled": false,
-  "permissions": {
-    "deny": [
-      "Read(**/.env*)",
-      "Read(~/.ssh/**)",
-      "Read(~/.gnupg/**)",
-      "Read(~/.docker/**)"
-    ]
-  }
-}
-EOF
+COPY conf/claude-hud.json /root/.claude/plugins/claude-hud/config.json
+COPY conf/claude-settings.json /root/.claude/settings.json
 
 # User-level CLAUDE.md (global instructions)
 COPY conf/CLAUDE.md /root/.claude/CLAUDE.md
@@ -288,102 +194,7 @@ RUN git config --global core.pager delta \
 # ============================================
 # Shell configuration (.zshrc)
 # ============================================
-RUN cat > /root/.zshrc <<'EOF'
-# ----------------------------------------
-# Zsh plugins (no oh-my-zsh framework)
-# ----------------------------------------
-source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
-source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source ~/.zsh/zsh-history-substring-search/zsh-history-substring-search.zsh
-
-# ----------------------------------------
-# History configuration
-# ----------------------------------------
-HISTFILE=~/.zsh_history
-HISTSIZE=50000
-SAVEHIST=50000
-setopt HIST_IGNORE_ALL_DUPS  # Remove older duplicate entries
-setopt HIST_FIND_NO_DUPS     # Don't show duplicates when searching
-setopt SHARE_HISTORY         # Share history across terminals
-setopt INC_APPEND_HISTORY    # Add commands immediately
-
-# ----------------------------------------
-# Shell options
-# ----------------------------------------
-setopt AUTO_CD               # Type directory name to cd into it
-setopt AUTO_PUSHD            # cd pushes to directory stack
-setopt PUSHD_IGNORE_DUPS     # Don't push duplicates
-setopt CORRECT               # Spelling correction for commands
-
-# ----------------------------------------
-# Key bindings
-# ----------------------------------------
-# Substring history search on Up/Down. Bind both the normal (`^[[A`) and
-# application-cursor (`^[OA`) escape sequences — apple/container's TTY
-# exec delivers `^[OA`, so binding only `^[[A` silently falls through to
-# the default `up-line-or-history` (plain chronological walk).
-bindkey '^[[A' history-substring-search-up
-bindkey '^[OA' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
-bindkey '^[OB' history-substring-search-down
-
-# fzf keybindings (Ctrl+R history, Ctrl+T files, Alt+C cd)
-source /usr/share/fzf/key-bindings.zsh
-
-# ----------------------------------------
-# Tool integrations
-# ----------------------------------------
-eval "$(zoxide init zsh)"
-eval "$(starship init zsh)"
-
-# ----------------------------------------
-# Aliases
-# ----------------------------------------
-alias lg="lazygit"
-alias y="yazi"
-alias f="fresh"
-alias e='file=$(fd --type f --hidden --no-ignore --follow --exclude .git | fzf) && [ -n "$file" ] && fresh "$file"'
-alias yf='d=$(fd --type d --hidden --no-ignore --follow --exclude .git | fzf) && [ -n "$d" ] && yazi "$d"'
-alias cat="bat --paging=never"
-alias l="eza -la --icons"
-alias br='fzf --preview "bat --color=always {}"'
-alias gp="git push"
-alias cl="claude --dangerously-skip-permissions"
-alias clx="claude --dangerously-skip-permissions --plugin-dir /opt/xcode-plugin"
-
-dir() { eza --tree --level="${1:-1}" --icons; }
-
-# ----------------------------------------
-# Help command for aliases
-# ----------------------------------------
-ha() {
-  echo "
-  Navigation & Files
-    l           List files (eza -la --icons)
-    dir [N]     Tree view, depth N (default: 1)
-    br          Browse files with preview (fzf + bat)
-    e           Fuzzy find + open in editor
-    y           Yazi file manager
-    yf          Fuzzy find folder + open in yazi
-
-  Tools
-    lg          Lazygit
-    f           Fresh editor
-    cat         Bat (syntax highlighting)
-
-  Keybindings
-    Ctrl+R      Fuzzy search command history
-    Ctrl+T      Fuzzy find file, insert path
-    Alt+C       Fuzzy find directory and cd
-    Up/Down     Search history with current prefix
-
-  Productivity
-    ccm         Claude commit message
-    cl          Claude (skip permissions)
-"
-}
-
-EOF
+COPY conf/zshrc /root/.zshrc
 
 # ============================================
 # Custom scripts
